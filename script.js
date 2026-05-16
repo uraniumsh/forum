@@ -1,28 +1,9 @@
-// ==========================================
-// 1. IMPORTACIONES FIREBASE (SDK v12.13.0)
-// ==========================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { 
-    getAuth, 
-    signInWithEmailAndPassword, 
-    onAuthStateChanged, 
-    signOut 
-} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { 
-    getFirestore, 
-    collection, 
-    addDoc, 
-    getDocs, 
-    query, 
-    orderBy, 
-    doc, 
-    getDoc, 
-    updateDoc, 
-    serverTimestamp 
-} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
 // ==========================================
-// 2. CONFIGURACIÓN REAL DE FIREBASE
+// CONFIGURACIÓN FIREBASE
 // ==========================================
 const firebaseConfig = {
     apiKey: "AIzaSyC2tMU45kFmdn-l4i9aiWN1u1fgnklSYqw",
@@ -33,16 +14,12 @@ const firebaseConfig = {
     appId: "1:145843090601:web:83d1e9e8b3b56e927765b8"
 };
 
-// Inicialización
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-
-// Conexión forzada a la base de datos "foro" 
-// (Si tu DB resultara ser la default, borras el string "foro" de este paréntesis)
 const db = getFirestore(app, "foro");
 
 // ==========================================
-// 3. CONFIGURACIÓN TELEGRAM Y VARIABLES
+// VARIABLES GLOBALES
 // ==========================================
 const TELEGRAM_CHAT_ID = "7056557759";
 const TELEGRAM_BOT_TOKEN = "8776046886:AAERDniNNcDSNEJonVc32JJBawFuWSyiMTQ";
@@ -51,26 +28,119 @@ let currentUserData = null;
 let transactionData = { paquete: '', monto: '', nombre: '', nequi: '' };
 
 // ==========================================
-// 4. CONTROL DE SESIÓN Y AUTH
+// GESTIÓN DE EVENTOS DEL DOM (El fix del onclick)
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    
+    // Navegación
+    document.getElementById('navLogo').addEventListener('click', () => showView('feedView'));
+    document.getElementById('adminBtn').addEventListener('click', () => showView('adminView'));
+    
+    // Modales (Abrir)
+    document.getElementById('openPaymentModalBtn').addEventListener('click', () => openModal('paymentModal'));
+    document.getElementById('authBtn').addEventListener('click', () => openModal('loginModal'));
+    document.getElementById('newPostBtn').addEventListener('click', () => openModal('postModal'));
+    
+    // Modales (Cerrar) - Usa el atributo data-close
+    document.querySelectorAll('.close-btn, [data-close]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const targetModalId = e.currentTarget.getAttribute('data-close') || e.currentTarget.parentElement.parentElement.id;
+            closeModal(targetModalId);
+        });
+    });
+
+    // Eventos de Autenticación
+    document.getElementById('submitLoginBtn').addEventListener('click', handleLogin);
+    document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
+    // Eventos del Foro
+    document.getElementById('submitPostBtn').addEventListener('click', handleCreatePost);
+
+    // Eventos del Panel Admin
+    document.getElementById('applySanctionBtn').addEventListener('click', handleApplySanction);
+    document.getElementById('makeAdminBtn').addEventListener('click', () => handleManageRole('admin'));
+    document.getElementById('revokeAdminBtn').addEventListener('click', () => handleManageRole('user'));
+
+    // Flujo de Pagos (Paso 1: Seleccionar Gema)
+    document.querySelectorAll('.gem-box').forEach(box => {
+        box.addEventListener('click', () => {
+            const amount = box.getAttribute('data-amount');
+            const price = box.getAttribute('data-price');
+            selectPackage(amount, price);
+        });
+    });
+
+    // Flujo de Pagos (Pasos 2 y 3)
+    document.getElementById('btnBackToStep1').addEventListener('click', () => goToStep(1));
+    document.getElementById('btnGoToStep3').addEventListener('click', submitUserData);
+    document.getElementById('webhookBtn').addEventListener('click', sendToWebhook);
+
+    // Cargar inicial
+    loadPosts();
+});
+
+// ==========================================
+// FUNCIONES DE UI
+// ==========================================
+function showView(viewId) {
+    document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+    document.getElementById(viewId).classList.remove('hidden');
+    if(viewId === 'feedView') loadPosts(); 
+}
+
+function openModal(modalId) {
+    document.getElementById(modalId).classList.remove('hidden');
+    if (modalId === 'paymentModal') resetPaymentFlow();
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+}
+
+function goToStep(stepNumber) {
+    for(let i=1; i<=4; i++) {
+        const stepDiv = document.getElementById('step' + i);
+        if(stepDiv) stepDiv.classList.add('hidden');
+    }
+    document.getElementById('step' + stepNumber).classList.remove('hidden');
+}
+
+function resetPaymentFlow() {
+    goToStep(1);
+    document.getElementById('nombreCompleto').value = '';
+    document.getElementById('nequiNum').value = '';
+    document.getElementById('comprobante').value = '';
+    const btn = document.getElementById('webhookBtn');
+    if(btn) { btn.innerText = "ENVIAR A REVISIÓN"; btn.disabled = false; }
+}
+
+// ==========================================
+// LÓGICA DE AUTH FIREBASE
 // ==========================================
 onAuthStateChanged(auth, async (user) => {
     if (user) {
-        const userDocRef = doc(db, "users", user.uid);
-        const userDocSnap = await getDoc(userDocRef);
+        try {
+            const userDocRef = doc(db, "users", user.uid);
+            const userDocSnap = await getDoc(userDocRef);
 
-        if (userDocSnap.exists()) {
-            currentUserData = userDocSnap.data();
-            currentUserData.uid = user.uid; 
+            if (userDocSnap.exists()) {
+                currentUserData = userDocSnap.data();
+                currentUserData.uid = user.uid; 
+            } else {
+                currentUserData = {
+                    uid: user.uid,
+                    email: user.email,
+                    role: (user.email === "juanrivera@urm.co") ? "superadmin" : "user",
+                    esmeraldas: 0,
+                    sanction: { partialBan: false, totalBan: false, isBlacklisted: false }
+                };
+                await updateDoc(userDocRef, currentUserData);
+            }
             applyUserPermissions();
-        } else {
-            currentUserData = {
-                uid: user.uid,
-                email: user.email,
-                role: (user.email === "juanrivera@urm.co") ? "superadmin" : "user",
-                esmeraldas: 0,
-                sanction: { partialBan: false, totalBan: false, isBlacklisted: false }
-            };
-            await updateDoc(userDocRef, currentUserData).catch(() => {});
+        } catch (e) {
+            console.error("Error validando DB:", e);
+            // Fallback si fallan permisos
+            currentUserData = { uid: user.uid, email: user.email, role: "user", esmeraldas: 0, sanction: {} };
             applyUserPermissions();
         }
     } else {
@@ -79,16 +149,14 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-document.getElementById('submitLoginBtn').addEventListener('click', async () => {
+async function handleLogin() {
     const email = document.getElementById('loginEmail').value.trim();
     const pass = document.getElementById('loginPass').value.trim();
     const errorDiv = document.getElementById('loginError');
     const btn = document.getElementById('submitLoginBtn');
 
     if(!email || !pass) { errorDiv.innerText = "Llena todos los campos."; return; }
-
-    btn.innerText = "Verificando...";
-    btn.disabled = true;
+    btn.innerText = "VERIFICANDO..."; btn.disabled = true;
 
     try {
         await signInWithEmailAndPassword(auth, email, pass);
@@ -97,22 +165,16 @@ document.getElementById('submitLoginBtn').addEventListener('click', async () => 
         document.getElementById('loginEmail').value = "";
         document.getElementById('loginPass').value = "";
     } catch (error) {
-        errorDiv.innerText = "Error: Credenciales inválidas o usuario no existe.";
+        errorDiv.innerText = "Error: Credenciales inválidas.";
     } finally {
-        btn.innerText = "Iniciar Sesión";
-        btn.disabled = false;
+        btn.innerText = "INICIAR SESIÓN"; btn.disabled = false;
     }
-});
-
-document.getElementById('logoutBtn').addEventListener('click', async () => {
-    await signOut(auth);
-});
+}
 
 function applyUserPermissions() {
     if (!currentUserData) return;
 
-    if (currentUserData.sanction && currentUserData.sanction.totalBan) {
-        document.getElementById('banMessage').innerText = "Tu cuenta ha sido bloqueada permanentemente.";
+    if (currentUserData.sanction?.totalBan) {
         document.getElementById('banScreen').classList.remove('hidden');
         return;
     }
@@ -122,12 +184,11 @@ function applyUserPermissions() {
     document.getElementById('newPostBtn').classList.remove('hidden');
     document.getElementById('esmeraldasCount').innerText = currentUserData.esmeraldas || 0;
 
-    if (currentUserData.sanction && currentUserData.sanction.partialBan) {
-        document.getElementById('newPostBtn').disabled = true;
-        document.getElementById('newPostBtn').innerText = "Bloqueado para publicar";
+    const postBtn = document.getElementById('newPostBtn');
+    if (currentUserData.sanction?.partialBan) {
+        postBtn.disabled = true; postBtn.innerText = "BLOQUEADO";
     } else {
-        document.getElementById('newPostBtn').disabled = false;
-        document.getElementById('newPostBtn').innerText = "Crear Debate";
+        postBtn.disabled = false; postBtn.innerText = "CREAR DEBATE";
     }
 
     if (currentUserData.role === "superadmin" || currentUserData.role === "admin") {
@@ -150,20 +211,18 @@ function resetUIForGuest() {
 }
 
 // ==========================================
-// 5. SISTEMA DE DEBATES (FIREBASE)
+// FORO (LEER Y ESCRIBIR POSTS)
 // ==========================================
-document.getElementById('submitPostBtn').addEventListener('click', async () => {
+async function handleCreatePost() {
     if (!currentUserData) return alert("Debes iniciar sesión.");
-    if (currentUserData.sanction?.partialBan) return alert("Estás bloqueado y no puedes publicar.");
+    if (currentUserData.sanction?.partialBan) return alert("Estás bloqueado.");
 
     const title = document.getElementById('postTitle').value.trim();
     const content = document.getElementById('postContent').value.trim();
     const btn = document.getElementById('submitPostBtn');
 
     if (!title || !content) return alert("Llena el título y el contenido.");
-
-    btn.innerText = "Publicando...";
-    btn.disabled = true;
+    btn.innerText = "PUBLICANDO..."; btn.disabled = true;
 
     try {
         await addDoc(collection(db, "posts"), {
@@ -180,17 +239,16 @@ document.getElementById('submitPostBtn').addEventListener('click', async () => {
         document.getElementById('postContent').value = "";
         loadPosts(); 
     } catch (error) {
+        alert("Error al crear el debate.");
         console.error(error);
-        alert("Error al crear el debate. Revisa las reglas de Firestore.");
     } finally {
-        btn.innerText = "Publicar Debate";
-        btn.disabled = false;
+        btn.innerText = "PUBLICAR"; btn.disabled = false;
     }
-});
+}
 
 async function loadPosts() {
     const feed = document.getElementById('feedContainer');
-    feed.innerHTML = '<div class="text-center text-muted">Cargando debates...</div>';
+    feed.innerHTML = '<div class="text-center text-muted">Cargando base de datos...</div>';
 
     try {
         const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
@@ -199,7 +257,7 @@ async function loadPosts() {
         feed.innerHTML = ''; 
         
         if (querySnapshot.empty) {
-            feed.innerHTML = '<div class="text-center text-muted">No hay debates aún. Sé el primero.</div>';
+            feed.innerHTML = '<div class="text-center text-muted">No hay datos en el servidor.</div>';
             return;
         }
 
@@ -208,19 +266,17 @@ async function loadPosts() {
             
             if (data.isBlacklisted) {
                 if (!currentUserData) return; 
-                if (currentUserData.role !== 'admin' && currentUserData.role !== 'superadmin' && currentUserData.sanction?.isBlacklisted !== true) {
-                    return; 
-                }
+                if (currentUserData.role !== 'admin' && currentUserData.role !== 'superadmin' && currentUserData.sanction?.isBlacklisted !== true) return; 
             }
 
-            const date = data.createdAt ? data.createdAt.toDate().toLocaleDateString() : 'Justo ahora';
+            const date = data.createdAt ? data.createdAt.toDate().toLocaleDateString() : 'Nuevo';
             
             const article = document.createElement('article');
             article.className = 'post-card';
             article.innerHTML = `
                 <div class="post-meta">
                     <span class="author">${data.authorEmail.split('@')[0]}</span>
-                    ${data.authorEmail === "juanrivera@urm.co" ? '<span class="badge">Creador</span>' : ''}
+                    ${data.authorEmail === "juanrivera@urm.co" ? '<span class="badge">CREADOR</span>' : ''}
                     <span class="date">${date}</span>
                 </div>
                 <h3 class="post-title">${data.title}</h3>
@@ -228,57 +284,50 @@ async function loadPosts() {
             `;
             feed.appendChild(article);
         });
-
     } catch (error) {
+        feed.innerHTML = '<div class="text-center error-text">Error de lectura Firestore.</div>';
         console.error(error);
-        feed.innerHTML = '<div class="text-center text-danger">Error al cargar. Verifica reglas Firestore.</div>';
     }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    loadPosts();
-});
-
 // ==========================================
-// 6. FLUJO DE COMPRA WEBHOOK (TELEGRAM)
+// FLUJO DE PAGOS (WEBHOOK)
 // ==========================================
-window.selectPackage = (cantidad, precio) => {
-    transactionData.paquete = cantidad + " Esmeraldas";
-    transactionData.monto = "$" + precio;
-    document.getElementById('selectedPackText').innerText = `${cantidad} Gemas por $${precio} COP`;
+function selectPackage(cantidad, precio) {
+    transactionData.paquete = cantidad + " Gemas";
+    transactionData.monto = "$" + new Intl.NumberFormat('es-CO').format(precio);
+    document.getElementById('selectedPackText').innerText = `${cantidad} Gemas por ${transactionData.monto} COP`;
     goToStep(2);
-};
+}
 
-window.submitUserData = () => {
+function submitUserData() {
     const nombre = document.getElementById('nombreCompleto').value.trim();
     const nequi = document.getElementById('nequiNum').value.trim();
 
-    if (!nombre || !nequi) return alert("Debes llenar todos los datos para continuar.");
-
+    if (!nombre || !nequi) return alert("Completa los campos.");
     transactionData.nombre = nombre;
     transactionData.nequi = nequi;
     document.getElementById('montoFinal').innerText = transactionData.monto;
     goToStep(3);
-};
+}
 
-window.sendToWebhook = async () => {
+async function sendToWebhook() {
     const fileInput = document.getElementById('comprobante');
-    if (fileInput.files.length === 0) return alert("Adjunta el comprobante antes de enviar.");
+    if (fileInput.files.length === 0) return alert("Adjunta imagen obligatoria.");
 
     const btn = document.getElementById('webhookBtn');
-    btn.innerText = "Procesando...";
-    btn.disabled = true;
+    btn.innerText = "PROCESANDO..."; btn.disabled = true;
 
     const file = fileInput.files[0];
     const uEmail = currentUserData ? currentUserData.email : "INVITADO";
     const captionText = `
-⬜ *RECARGA DE ESMERALDAS*
+⬜ *COMPRA DE ESMERALDAS*
 -----------------------------------
 👤 *Cliente:* ${transactionData.nombre}
 📧 *Cuenta:* ${uEmail}
 📱 *Nequi Origen:* ${transactionData.nequi}
 🛒 *Paquete:* ${transactionData.paquete}
-💰 *Monto a Verificar:* ${transactionData.monto}
+💰 *Monto Validar:* ${transactionData.monto}
 -----------------------------------`;
 
     const formData = new FormData();
@@ -288,91 +337,49 @@ window.sendToWebhook = async () => {
     formData.append('parse_mode', 'Markdown');
 
     try {
-        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, { method: 'POST', body: formData });
-        if (response.ok) {
-            goToStep(4);
-        } else {
-            throw new Error("Error API Telegram");
-        }
+        const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, { method: 'POST', body: formData });
+        if (res.ok) goToStep(4);
+        else throw new Error("API Error");
     } catch (error) {
-        alert("Error de red al enviar el comprobante.");
-        btn.innerText = "Enviar Comprobante";
-        btn.disabled = false;
-    }
-};
-
-window.goToStep = (stepNumber) => {
-    for(let i=1; i<=4; i++) {
-        const stepDiv = document.getElementById('step' + i);
-        if(stepDiv) stepDiv.classList.add('hidden');
-    }
-    document.getElementById('step' + stepNumber).classList.remove('hidden');
-};
-
-function resetPaymentFlow() {
-    goToStep(1);
-    document.getElementById('nombreCompleto').value = '';
-    document.getElementById('nequiNum').value = '';
-    document.getElementById('comprobante').value = '';
-    const btn = document.getElementById('webhookBtn');
-    if(btn) {
-        btn.innerText = "Enviar Comprobante";
-        btn.disabled = false;
+        alert("Fallo de red al conectar con el servidor.");
+        btn.innerText = "ENVIAR A REVISIÓN"; btn.disabled = false;
     }
 }
 
 // ==========================================
-// 7. CONTROL DE MODALES UI
+// PANEL DE ADMIN
 // ==========================================
-window.showView = (viewId) => {
-    document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-    document.getElementById(viewId).classList.remove('hidden');
-    if(viewId === 'feedView') loadPosts(); 
-};
-
-window.openModal = (modalId) => {
-    document.getElementById(modalId).classList.remove('hidden');
-    if (modalId === 'paymentModal') resetPaymentFlow();
-};
-
-window.closeModal = (modalId) => {
-    document.getElementById(modalId).classList.add('hidden');
-};
-
-// ==========================================
-// 8. PANEL DE ADMIN
-// ==========================================
-document.getElementById('applySanctionBtn').addEventListener('click', async () => {
-    if (!currentUserData || (currentUserData.role !== 'admin' && currentUserData.role !== 'superadmin')) return;
+async function handleApplySanction() {
+    if (!currentUserData || !['admin', 'superadmin'].includes(currentUserData.role)) return;
     
     const targetUid = document.getElementById('targetUserId').value.trim();
     const type = document.getElementById('sanctionType').value;
-
-    if(!targetUid) return alert("Ingresa un UID válido.");
+    if(!targetUid) return alert("Ingresa un UID.");
 
     try {
         const userRef = doc(db, "users", targetUid);
         let sanctionUpdate = { partialBan: false, totalBan: false, isBlacklisted: false };
-        
         if (type !== 'none') sanctionUpdate[type] = true;
 
         await updateDoc(userRef, { sanction: sanctionUpdate });
-        alert("Sanción aplicada en la base de datos.");
+        alert("Comando de base de datos ejecutado con éxito.");
+        document.getElementById('targetUserId').value = '';
     } catch (e) {
-        alert("Error al aplicar sanción. Verifica UID y reglas Firestore.");
+        alert("Permisos denegados en Firestore para este UID.");
     }
-});
+}
 
-window.manageRole = async (newRole) => {
-    if (!currentUserData || currentUserData.role !== 'superadmin') return alert("Solo el creador puede hacer esto.");
+async function handleManageRole(newRole) {
+    if (!currentUserData || currentUserData.role !== 'superadmin') return alert("Acceso denegado.");
     
     const targetUid = document.getElementById('newAdminId').value.trim();
     if(!targetUid) return;
 
     try {
         await updateDoc(doc(db, "users", targetUid), { role: newRole });
-        alert(`Rol cambiado a ${newRole} exitosamente.`);
+        alert(`Rango asignado: ${newRole.toUpperCase()}`);
+        document.getElementById('newAdminId').value = '';
     } catch (e) {
-        alert("Error modificando rol.");
+        alert("Fallo de escritura en Firestore.");
     }
-};
+}
