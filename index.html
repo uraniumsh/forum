@@ -7,8 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <script type="module" src="script.js" defer></script>
+    <link rel="stylesheet" href="style.css?v=uranium_v2">
+    <script type="module" src="script.js?v=uranium_v2" defer></script>
 </head>
 <body>
 
@@ -119,5 +119,133 @@
                     <select id="prodCategory">
                         <option value="">-- Selecciona --</option>
                     </select>
-                    <button id="btnAddCategory" class="neo-btn-sm" style="height: 52px; margin-left: 10px;">+ NUEVA</button>
+                    <button id="btnOpenCategoryModal" class="neo-btn-sm" style="height: 52px; margin-left: 10px;">+ NUEVA</button>
                 </div>
+            </div>
+            <div class="form-group">
+                <label>Nombre del Producto:</label>
+                <input type="text" id="prodName" placeholder="Ej. Pantalla Netflix">
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Costo (Lo que te vale):</label>
+                    <input type="number" id="prodCost" placeholder="Ej. 10000">
+                </div>
+                <div class="form-group">
+                    <label>Precio Venta (PVP):</label>
+                    <input type="number" id="prodPrice" placeholder="Ej. 15000">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Stock Inicial (Unidades):</label>
+                <input type="number" id="prodStock" placeholder="Ej. 5">
+            </div>
+            
+            <button id="submitProductBtn" class="neo-btn w-100 mt-20">GUARDAR PRODUCTO</button>
+        </div>
+    </div>
+
+    <div id="categoryModal" class="modal category-modal-overlay">
+        <div class="modal-content neo-card category-modal-box">
+            <button class="close-btn" data-close="categoryModal">&times;</button>
+            <h2 class="title-font">NUEVA CATEGORÍA</h2>
+            <hr class="neo-divider">
+            
+            <div class="form-group">
+                <label>Nombre de la Categoría:</label>
+                <input type="text" id="newCategoryInput" placeholder="Ej. Pantallas, Combos, Música...">
+            </div>
+            
+            <button id="submitCategoryBtn" class="neo-btn w-100 mt-20">AÑADIR CATEGORÍA</button>
+            <div id="categoryError" class="error-text text-center mt-10"></div>
+        </div>
+    </div>
+
+    <div id="comboModal" class="modal">
+        <div class="modal-content neo-card combo-modal-size">
+            <button class="close-btn" data-close="comboModal">&times;</button>
+            <h2 class="title-font accent-text">⚡ CREADOR DE COMBOS</h2>
+            <p class="text-muted mb-20">Toca las apps del inventario para agregarlas al combo.</p>
+            
+            <div class="combo-builder">
+                <div class="apps-source neo-card-inset">
+                    <h4>APPS DISPONIBLES</h4>
+                    <div class="apps-grid" id="appsSourceGrid">
+                        </div>
+                </div>
+
+                <div class="combo-slots-area">
+                    <h4>ARMA TU COMBO</h4>
+                    <div class="slots-container" id="comboSlotsContainer">
+                        <div class="combo-slot empty" data-slot="1">Toca una<br>App</div>
+                        <div class="combo-slot empty" data-slot="2">Toca una<br>App</div>
+                        <div class="combo-slot empty" data-slot="3">Toca una<br>App</div>
+                        <div class="combo-slot empty" data-slot="4">Toca una<br>App</div>
+                        <div class="combo-slot empty" data-slot="5">Toca una<br>App</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="financial-box mt-20">
+                <div class="form-group">
+                    <label>Nombre del Combo:</label>
+                    <input type="text" id="comboName" placeholder="Ej. Combo Familiar">
+                </div>
+                <div class="financial-grid">
+                    <div class="fin-item">
+                        <span>Costo Total:</span>
+                        <strong id="comboTotalCost">$0</strong>
+                    </div>
+                    <div class="fin-item">
+                        <span>Precio Regular:</span>
+                        <strong id="comboRegularPrice">$0</strong>
+                    </div>
+                    <div class="fin-item highlight">
+                        <label>Precio del Combo:</label>
+                        <input type="number" id="comboFinalPrice" placeholder="Ej. 25000">
+                    </div>
+                    <div class="fin-item">
+                        <span>Descuento Aplicado:</span>
+                        <strong id="comboDiscount" class="text-warning">$0</strong>
+                    </div>
+                    <div class="fin-item">
+                        <span>Ganancia Neta:</span>
+                        <strong id="comboProfit" class="text-success">$0</strong>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="submitComboBtn" class="neo-btn w-100 mt-20 warning">GUARDAR COMBO EN INVENTARIO</button>
+            <div id="comboError" class="error-text text-center mt-10"></div>
+        </div>
+    </div>
+
+    <div id="saleModal" class="modal">
+        <div class="modal-content neo-card">
+            <button class="close-btn" data-close="saleModal">&times;</button>
+            <h2 class="title-font">REGISTRAR VENTA</h2>
+            <hr class="neo-divider">
+            
+            <div class="form-group">
+                <label>Seleccionar Producto/Combo:</label>
+                <select id="saleProductSelect">
+                    <option value="">-- Elige un producto del stock --</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Cantidad Vendida:</label>
+                <input type="number" id="saleQuantity" value="1" min="1">
+            </div>
+            
+            <div class="calculator-box neo-card-inset">
+                <p>TOTAL A COBRAR:</p>
+                <h2 id="saleTotalText" class="accent-text">$0 COP</h2>
+            </div>
+            
+            <button id="submitSaleBtn" class="neo-btn w-100 mt-20 primary">CONFIRMAR VENTA</button>
+            <div id="saleError" class="error-text text-center mt-10"></div>
+        </div>
+    </div>
+
+</body>
+</html>
