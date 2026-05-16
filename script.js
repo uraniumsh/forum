@@ -3,7 +3,7 @@
 // ==========================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { 
-    getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, getDoc,
+    getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, getDoc, setDoc,
     onSnapshot, query, orderBy, serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -20,95 +20,190 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app); 
+const db = getFirestore(app);
 
 const inventoryRef = collection(db, "inventory");
 const salesRef = collection(db, "sales");
+const settingsRef = doc(db, "settings", "categories");
 
 let currentProducts = []; 
-let currentSales = []; // Guarda las ventas globalmente para el conteo
+let currentSales = []; 
+let currentCategories = ["Netflix", "Disney+", "Amazon Prime", "Spotify", "HBO Max", "Crunchyroll"]; 
 let comboSelectedApps = []; 
 
 // ==========================================
-// EVENTOS PRINCIPALES
+// EVENTOS Y UI
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     
-    // TEMA OSCURO
+    // Tema
     const themeBtn = document.getElementById('themeToggle');
-    if(localStorage.getItem('uraniumTheme') === 'dark') {
-        document.body.classList.add('dark-mode'); themeBtn.innerText = "☀️";
-    }
+    if(localStorage.getItem('uraniumTheme') === 'dark') { document.body.classList.add('dark-mode'); themeBtn.innerText = "☀️"; }
     themeBtn.addEventListener('click', () => {
         document.body.classList.toggle('dark-mode');
         themeBtn.innerText = document.body.classList.contains('dark-mode') ? "☀️" : "🌙";
         localStorage.setItem('uraniumTheme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
     });
 
-    // PESTAÑAS (TABS)
+    // Pestañas
     const tabBtns = document.querySelectorAll('.tab-btn');
     const viewSections = document.querySelectorAll('.view-section');
-
     tabBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
-            tabBtns.forEach(b => b.classList.remove('active'));
-            viewSections.forEach(sec => sec.classList.remove('active'));
+            tabBtns.forEach(b => b.classList.remove('active')); viewSections.forEach(sec => sec.classList.remove('active'));
             e.currentTarget.classList.add('active');
             document.getElementById(e.currentTarget.getAttribute('data-target')).classList.add('active');
         });
     });
 
-    // ABRIR MODALES
+    // Modales Base
     document.getElementById('btnOpenProductModal').addEventListener('click', () => openModal('productModal'));
     document.getElementById('btnOpenComboModal').addEventListener('click', () => { resetComboBuilder(); openModal('comboModal'); });
+    
     document.getElementById('btnOpenSaleModal').addEventListener('click', () => {
-        populateSalesDropdown(); document.getElementById('saleTotalText').innerText = "$0 COP"; openModal('saleModal');
+        populateSalesDropdown(); 
+        document.getElementById('salePriceOverride').value = '';
+        document.getElementById('saleTotalText').innerText = "$0 COP"; 
+        openModal('saleModal');
     });
 
-    // CERRAR MODALES
+    // Modales de Categoría
+    document.getElementById('btnOpenCategoryModal').addEventListener('click', (e) => {
+        e.preventDefault(); 
+        document.getElementById('newCategoryInput').value = '';
+        document.getElementById('categoryError').innerText = '';
+        openModal('categoryModal');
+    });
+
+    document.getElementById('btnManageCategoriesModal').addEventListener('click', (e) => {
+        e.preventDefault(); 
+        renderManageCategoriesList();
+        openModal('manageCategoriesModal');
+    });
+
     document.querySelectorAll('[data-close]').forEach(btn => {
         btn.addEventListener('click', (e) => closeModal(e.currentTarget.getAttribute('data-close')));
     });
 
-    // ACCIONES GENERALES
+    // Acciones y Guardado
     document.getElementById('inventoryFilter').addEventListener('change', renderInventoryTable);
+    document.getElementById('submitCategoryBtn').addEventListener('click', handleAddCategory);
     document.getElementById('submitProductBtn').addEventListener('click', handleAddProduct);
+    document.getElementById('submitEditProductBtn').addEventListener('click', handleEditProduct);
     document.getElementById('submitSaleBtn').addEventListener('click', handleRegisterSale);
+    document.getElementById('submitEditSaleBtn').addEventListener('click', handleEditSale);
     document.getElementById('submitComboBtn').addEventListener('click', handleSaveCombo);
     
-    // CALCULO INTELIGENTE DE COMBO
-    document.getElementById('btnSmartPrice').addEventListener('click', (e) => {
-        e.preventDefault();
-        calculateSmartPrice();
-    });
-    
-    document.getElementById('saleQuantity').addEventListener('input', calculateSaleTotal);
-    document.getElementById('saleProductSelect').addEventListener('change', calculateSaleTotal);
+    // Calculadoras dinámicas
+    document.getElementById('btnSmartPrice').addEventListener('click', (e) => { e.preventDefault(); calculateSmartPrice(); });
     document.getElementById('comboFinalPrice').addEventListener('input', calculateComboFinancials);
+    
+    document.getElementById('saleProductSelect').addEventListener('change', () => {
+        const prod = currentProducts.find(p => p.id === document.getElementById('saleProductSelect').value);
+        if(prod) { document.getElementById('salePriceOverride').value = prod.price || 0; }
+        else { document.getElementById('salePriceOverride').value = ''; }
+        calculateSaleTotal();
+    });
+    document.getElementById('saleQuantity').addEventListener('input', calculateSaleTotal);
+    document.getElementById('salePriceOverride').addEventListener('input', calculateSaleTotal); 
+    
+    // Calculadora Editar Venta
+    document.getElementById('editSaleQuantity').addEventListener('input', calculateEditSaleTotal);
+    document.getElementById('editSalePriceOverride').addEventListener('input', calculateEditSaleTotal); 
 
-    // INICIAR CONEXIÓN
+    // Calculadora Socios Base
+    const baseInput = document.getElementById('baseCapital');
+    baseInput.value = localStorage.getItem('uraniumBaseCapital') || 0;
+    baseInput.addEventListener('input', (e) => {
+        localStorage.setItem('uraniumBaseCapital', e.target.value);
+    });
+
+    listenToCategories();
     listenToInventory();
     listenToSales();
 });
 
-function openModal(modalId) { document.getElementById(modalId).classList.add('active'); }
-function closeModal(modalId) {
+window.openModal = function(modalId) { document.getElementById(modalId).classList.add('active'); }
+window.closeModal = function(modalId) {
     document.getElementById(modalId).classList.remove('active');
-    setTimeout(() => {
-        if(modalId === 'productModal') {
-            document.getElementById('prodName').value = ''; document.getElementById('prodPrice').value = '';
-            document.getElementById('prodCost').value = ''; document.getElementById('prodStock').value = '';
-        }
-        if(modalId === 'saleModal') {
-            document.getElementById('saleQuantity').value = '1'; document.getElementById('saleEmail').value = '';
-            document.getElementById('salePassword').value = ''; document.getElementById('saleError').innerText = '';
-        }
-    }, 300);
 }
 const formatMoney = (amount) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
 
 // ==========================================
-// INVENTARIO Y ELIMINAR PRODUCTO
+// CATEGORÍAS (Lógica Unificada)
+// ==========================================
+function listenToCategories() {
+    onSnapshot(settingsRef, (docSnap) => {
+        if (docSnap.exists() && docSnap.data().list) currentCategories = docSnap.data().list;
+        else setDoc(settingsRef, { list: currentCategories }).catch(()=>{});
+        updateCategorySelects();
+        if(document.getElementById('manageCategoriesModal').classList.contains('active')) renderManageCategoriesList();
+    });
+}
+
+function updateCategorySelects() {
+    const prodSelect = document.getElementById('prodCategory');
+    const editProdSelect = document.getElementById('editProdCategory');
+    const filterSelect = document.getElementById('inventoryFilter');
+    
+    prodSelect.innerHTML = '<option value="">-- Selecciona --</option>';
+    editProdSelect.innerHTML = '<option value="">-- Selecciona --</option>';
+    filterSelect.innerHTML = '<option value="ALL">Todas las Categorías</option>';
+
+    currentCategories.forEach(cat => {
+        prodSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+        editProdSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+        filterSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+    });
+}
+
+async function handleAddCategory() {
+    const newCatName = document.getElementById('newCategoryInput').value.trim();
+    const btn = document.getElementById('submitCategoryBtn');
+    const err = document.getElementById('categoryError');
+
+    if (!newCatName) { err.innerText = "Escribe un nombre válido."; return; }
+    if(currentCategories.some(c => c.toLowerCase() === newCatName.toLowerCase())) { err.innerText = "Esta categoría ya existe."; return; }
+
+    btn.innerText = "GUARDANDO..."; btn.disabled = true; err.innerText = "";
+    currentCategories.push(newCatName);
+    updateCategorySelects();
+    document.getElementById('prodCategory').value = newCatName;
+
+    try {
+        await setDoc(settingsRef, { list: currentCategories }, { merge: true });
+        closeModal('categoryModal');
+    } catch (e) { closeModal('categoryModal'); } 
+    finally { btn.innerText = "AÑADIR CATEGORÍA"; btn.disabled = false; }
+}
+
+function renderManageCategoriesList() {
+    const listContainer = document.getElementById('categoriesListContainer');
+    listContainer.innerHTML = '';
+    
+    if(currentCategories.length === 0) {
+        listContainer.innerHTML = '<p class="text-center text-muted">No hay categorías.</p>'; return;
+    }
+
+    currentCategories.forEach((cat, index) => {
+        const div = document.createElement('div');
+        div.className = 'cat-list-item';
+        div.innerHTML = `<span>${cat}</span><button class="btn-icon-sm danger" onclick="deleteCategory(${index})" title="Eliminar">🗑️</button>`;
+        listContainer.appendChild(div);
+    });
+}
+
+window.deleteCategory = async function(idx) {
+    const catToDelete = currentCategories[idx];
+    if(confirm(`¿Seguro que deseas eliminar la categoría "${catToDelete}"? Los productos que la usan no se borrarán.`)) {
+        const newCats = currentCategories.filter((_, i) => i != idx);
+        try { await setDoc(settingsRef, { list: newCats }, { merge: true }); } 
+        catch(err) { alert("Error al eliminar la categoría."); }
+    }
+}
+
+// ==========================================
+// INVENTARIO (AGREGAR, EDITAR, ELIMINAR)
 // ==========================================
 async function handleAddProduct() {
     const category = document.getElementById('prodCategory').value || "General";
@@ -119,7 +214,6 @@ async function handleAddProduct() {
     const btn = document.getElementById('submitProductBtn');
 
     if (!name || price <= 0) { alert("El nombre y el precio de venta son obligatorios."); return; }
-
     btn.innerText = "GUARDANDO..."; btn.disabled = true;
     try {
         await addDoc(inventoryRef, { category, name, cost, price, stock, isCombo: false, createdAt: serverTimestamp() });
@@ -129,11 +223,49 @@ async function handleAddProduct() {
 }
 
 window.deleteProduct = async function(id) {
-    if(confirm("¿Seguro que quieres eliminar este producto del inventario de forma permanente?")) {
-        try {
-            await deleteDoc(doc(db, "inventory", id));
-        } catch (e) { alert("Error al eliminar producto."); }
+    if(confirm("¿Seguro que quieres eliminar este producto de forma permanente?")) {
+        try { await deleteDoc(doc(db, "inventory", id)); } catch (e) { alert("Error al eliminar."); }
     }
+}
+
+window.adjustStock = async function(id, change) {
+    const prod = currentProducts.find(p => p.id === id);
+    if(!prod) return;
+    const newStock = (prod.stock || 0) + change;
+    if(newStock < 0) return; 
+    try { await updateDoc(doc(db, "inventory", id), { stock: newStock }); } 
+    catch(e) { alert("Error actualizando stock."); }
+}
+
+window.openEditProduct = function(id) {
+    const prod = currentProducts.find(p => p.id === id);
+    if(!prod) return;
+    document.getElementById('editProdId').value = prod.id;
+    document.getElementById('editProdCategory').value = prod.category || '';
+    document.getElementById('editProdName').value = prod.name || '';
+    document.getElementById('editProdCost').value = prod.cost || 0;
+    document.getElementById('editProdPrice').value = prod.price || 0;
+    document.getElementById('editProdStock').value = prod.stock || 0;
+    openModal('editProductModal');
+}
+
+async function handleEditProduct() {
+    const id = document.getElementById('editProdId').value;
+    const category = document.getElementById('editProdCategory').value || "General";
+    const name = document.getElementById('editProdName').value.trim();
+    const cost = parseFloat(document.getElementById('editProdCost').value) || 0;
+    const price = parseFloat(document.getElementById('editProdPrice').value) || 0;
+    const stock = parseInt(document.getElementById('editProdStock').value) || 0;
+    const btn = document.getElementById('submitEditProductBtn');
+
+    if (!name || price <= 0) { alert("Nombre y precio válidos requeridos."); return; }
+    btn.innerText = "ACTUALIZANDO..."; btn.disabled = true;
+
+    try {
+        await updateDoc(doc(db, "inventory", id), { category, name, cost, price, stock });
+        closeModal('editProductModal');
+    } catch (e) { alert("Error al actualizar producto."); } 
+    finally { btn.innerText = "ACTUALIZAR PRODUCTO"; btn.disabled = false; }
 }
 
 function listenToInventory() {
@@ -169,10 +301,17 @@ function renderInventoryTable() {
                 <td style="font-size:0.8rem;">${catBadge}</td>
                 <td class="text-muted">${formatMoney(data.cost || 0)}</td>
                 <td class="accent-text">${formatMoney(data.price || 0)}</td>
-                <td><span class="badge-stock">${data.stock || 0}</span></td>
                 <td>
-                    <div style="display:flex; gap:5px;">
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <button class="btn-icon-sm" onclick="adjustStock('${data.id}', -1)">-</button>
+                        <span class="badge-stock">${data.stock || 0}</span>
+                        <button class="btn-icon-sm" onclick="adjustStock('${data.id}', 1)">+</button>
+                    </div>
+                </td>
+                <td>
+                    <div style="display:flex; gap:10px; align-items:center;">
                         ${statusBadge}
+                        <button class="btn-icon-sm warning" onclick="openEditProduct('${data.id}')" title="Editar">✏️</button>
                         <button class="btn-icon-sm danger" onclick="deleteProduct('${data.id}')" title="Eliminar">🗑️</button>
                     </div>
                 </td>
@@ -183,16 +322,13 @@ function renderInventoryTable() {
 }
 
 // ==========================================
-// CREADOR DE COMBOS Y PRECIO INTELIGENTE
+// CREADOR DE COMBOS
 // ==========================================
 function resetComboBuilder() {
     comboSelectedApps = [];
-    document.getElementById('comboName').value = '';
-    document.getElementById('comboFinalPrice').value = '';
-    
+    document.getElementById('comboName').value = ''; document.getElementById('comboFinalPrice').value = '';
     document.querySelectorAll('.combo-slot').forEach(slot => {
-        slot.innerHTML = 'Toca una<br>App';
-        slot.classList.add('empty'); slot.removeAttribute('data-app-id');
+        slot.innerHTML = 'Toca una<br>App'; slot.classList.add('empty'); slot.removeAttribute('data-app-id');
     });
     renderComboSourceApps(); calculateComboFinancials();
 }
@@ -201,7 +337,6 @@ function renderComboSourceApps() {
     const grid = document.getElementById('appsSourceGrid');
     grid.innerHTML = '';
     const available = currentProducts.filter(p => p.stock > 0 && !p.isCombo);
-    
     available.forEach(app => {
         const div = document.createElement('div');
         div.className = 'app-icon';
@@ -233,17 +368,12 @@ window.removeAppFromSlot = function(element) {
 function calculateSmartPrice() {
     let totalCost = 0; let regularPrice = 0;
     comboSelectedApps.forEach(app => { totalCost += (app.cost || 0); regularPrice += (app.price || 0); });
-    
     if(regularPrice === 0) return;
-
-    // Lógica: 15% de descuento sobre el precio regular. 
-    // Si ese descuento daña la ganancia mínima (Costo + 20%), fijamos el mínimo en 20% ganancia.
+    
     let smartPrice = regularPrice * 0.85; 
     let minProfitMargin = totalCost * 1.20;
 
     if (smartPrice < minProfitMargin) { smartPrice = minProfitMargin; }
-    
-    // Redondeo bonito para COP (a los 500 pesos más cercanos)
     smartPrice = Math.ceil(smartPrice / 500) * 500;
     
     document.getElementById('comboFinalPrice').value = smartPrice;
@@ -268,14 +398,13 @@ async function handleSaveCombo() {
     const btn = document.getElementById('submitComboBtn');
     const errorDiv = document.getElementById('comboError');
 
-    if(comboSelectedApps.length < 2) { errorDiv.innerText = "Selecciona al menos 2 apps tocándolas."; return; }
+    if(comboSelectedApps.length < 2) { errorDiv.innerText = "Selecciona al menos 2 apps."; return; }
     if(!name || finalPrice <= 0) { errorDiv.innerText = "Nombre y precio válidos requeridos."; return; }
 
     let baseCost = 0; comboSelectedApps.forEach(a => baseCost += (a.cost || 0));
     const minStock = Math.min(...comboSelectedApps.map(a => a.stock || 0));
 
     btn.innerText = "CREANDO..."; btn.disabled = true; errorDiv.innerText = "";
-
     try {
         await addDoc(inventoryRef, {
             name, category: "COMBOS", cost: baseCost, price: finalPrice,
@@ -283,50 +412,59 @@ async function handleSaveCombo() {
         });
         closeModal('comboModal');
     } catch (error) { errorDiv.innerText = "Error: " + error.message; } 
-    finally { btn.innerText = "GUARDAR COMBO EN INVENTARIO"; btn.disabled = false; }
+    finally { btn.innerText = "GUARDAR COMBO"; btn.disabled = false; }
 }
 
 // ==========================================
-// VENTAS Y ELIMINACIÓN RESTAURANDO STOCK
+// VENTAS (REGISTRAR, EDITAR, ELIMINAR, INFO)
 // ==========================================
 function populateSalesDropdown() {
     const select = document.getElementById('saleProductSelect');
     select.innerHTML = '<option value="">-- Elige un producto --</option>';
     currentProducts.forEach(prod => {
         if((prod.stock || 0) > 0) {
-            select.innerHTML += `<option value="${prod.id}">${prod.isCombo ? "⚡" : ""} ${prod.name} - Disp: ${prod.stock}</option>`;
+            const prefix = prod.isCombo ? "⚡" : "";
+            select.innerHTML += `<option value="${prod.id}">${prefix} ${prod.name} - Disp: ${prod.stock}</option>`;
         }
     });
 }
 
 function calculateSaleTotal() {
-    const prod = currentProducts.find(p => p.id === document.getElementById('saleProductSelect').value);
+    const price = parseFloat(document.getElementById('salePriceOverride').value) || 0;
     const qty = parseInt(document.getElementById('saleQuantity').value) || 0;
-    document.getElementById('saleTotalText').innerText = prod ? formatMoney((prod.price || 0) * qty) : "$0 COP";
+    document.getElementById('saleTotalText').innerText = formatMoney(price * qty);
+}
+
+function calculateEditSaleTotal() {
+    const price = parseFloat(document.getElementById('editSalePriceOverride').value) || 0;
+    const qty = parseInt(document.getElementById('editSaleQuantity').value) || 0;
+    document.getElementById('editSaleTotalText').innerText = formatMoney(price * qty);
 }
 
 async function handleRegisterSale() {
     const prodId = document.getElementById('saleProductSelect').value;
     const qty = parseInt(document.getElementById('saleQuantity').value) || 0;
+    const customPrice = parseFloat(document.getElementById('salePriceOverride').value) || 0;
     const sEmail = document.getElementById('saleEmail').value.trim();
     const sPass = document.getElementById('salePassword').value.trim();
     const errorDiv = document.getElementById('saleError');
     const btn = document.getElementById('submitSaleBtn');
 
-    if (!prodId || qty <= 0) { errorDiv.innerText = "Verifica el producto y la cantidad."; return; }
+    if (!prodId || qty <= 0 || customPrice <= 0) { errorDiv.innerText = "Verifica los datos."; return; }
     const product = currentProducts.find(p => p.id === prodId);
     if (qty > (product.stock || 0)) { errorDiv.innerText = "Stock insuficiente."; return; }
 
     btn.innerText = "PROCESANDO..."; btn.disabled = true;
 
     try {
-        const totalSale = (product.price || 0) * qty;
+        const totalSale = customPrice * qty;
         const totalCost = (product.cost || 0) * qty;
 
         await addDoc(salesRef, {
             productId: product.id, productName: product.name, quantity: qty,
+            salePriceUsed: customPrice, productCostUsed: product.cost || 0, // Guardamos el costo histórico por si cambia en el inventario
             total: totalSale, profit: (totalSale - totalCost), isCombo: product.isCombo || false,
-            comboItems: product.comboItems || null, // Guardamos la info del combo en la venta para restaurar fácil
+            comboItems: product.comboItems || null,
             accountEmail: sEmail, accountPassword: sPass,
             date: serverTimestamp()
         });
@@ -344,6 +482,75 @@ async function handleRegisterSale() {
     finally { btn.innerText = "CONFIRMAR VENTA"; btn.disabled = false; }
 }
 
+window.openEditSale = function(saleId) {
+    const sale = currentSales.find(s => s.id === saleId);
+    if(!sale) return;
+    
+    document.getElementById('editSaleId').value = sale.id;
+    document.getElementById('editSaleProductName').innerText = sale.productName;
+    document.getElementById('editSalePriceOverride').value = sale.salePriceUsed || (sale.total / sale.quantity) || 0;
+    
+    // Guardamos la cantidad original para hacer la matemática del stock si la cambia
+    document.getElementById('editSaleQuantity').value = sale.quantity;
+    document.getElementById('editSaleQuantity').setAttribute('data-old-qty', sale.quantity); 
+    
+    document.getElementById('editSaleEmail').value = sale.accountEmail || '';
+    document.getElementById('editSalePassword').value = sale.accountPassword || '';
+    
+    calculateEditSaleTotal();
+    openModal('editSaleModal');
+}
+
+async function handleEditSale() {
+    const saleId = document.getElementById('editSaleId').value;
+    const sale = currentSales.find(s => s.id === saleId);
+    if(!sale) return;
+
+    const newPrice = parseFloat(document.getElementById('editSalePriceOverride').value) || 0;
+    const newQty = parseInt(document.getElementById('editSaleQuantity').value) || 0;
+    const oldQty = parseInt(document.getElementById('editSaleQuantity').getAttribute('data-old-qty')) || sale.quantity;
+    const newEmail = document.getElementById('editSaleEmail').value.trim();
+    const newPass = document.getElementById('editSalePassword').value.trim();
+    const btn = document.getElementById('submitEditSaleBtn');
+
+    if(newQty <= 0 || newPrice <= 0) { alert("Valores inválidos."); return; }
+
+    btn.innerText = "ACTUALIZANDO..."; btn.disabled = true;
+
+    try {
+        const qtyDiff = newQty - oldQty; // Si es positivo, sacó más stock. Si es negativo, devolvió stock.
+        const productCost = sale.productCostUsed || 0; // Usar el costo que tenía cuando se vendió
+        
+        const newTotal = newPrice * newQty;
+        const newProfit = newTotal - (productCost * newQty);
+
+        // 1. Actualizar venta
+        await updateDoc(doc(db, "sales", saleId), {
+            salePriceUsed: newPrice, quantity: newQty,
+            total: newTotal, profit: newProfit,
+            accountEmail: newEmail, accountPassword: newPass
+        });
+
+        // 2. Ajustar Stock si la cantidad cambió
+        if(qtyDiff !== 0) {
+            const pRef = doc(db, "inventory", sale.productId);
+            const pSnap = await getDoc(pRef);
+            if(pSnap.exists()) {
+                await updateDoc(pRef, { stock: pSnap.data().stock - qtyDiff });
+            }
+            if(sale.isCombo && sale.comboItems) {
+                for(let itemId of sale.comboItems) {
+                    const cRef = doc(db, "inventory", itemId);
+                    const cSnap = await getDoc(cRef);
+                    if(cSnap.exists()) { await updateDoc(cRef, { stock: cSnap.data().stock - qtyDiff }); }
+                }
+            }
+        }
+        closeModal('editSaleModal');
+    } catch (e) { alert("Error al editar venta: " + e.message); }
+    finally { btn.innerText = "ACTUALIZAR VENTA"; btn.disabled = false; }
+}
+
 window.showSaleInfo = function(saleId) {
     const sale = currentSales.find(s => s.id === saleId);
     if(!sale) return;
@@ -351,45 +558,42 @@ window.showSaleInfo = function(saleId) {
     document.getElementById('infoEmail').innerText = sale.accountEmail || 'Sin Asignar';
     document.getElementById('infoPassword').innerText = sale.accountPassword || 'Sin Asignar';
     
-    // Contar cuántas veces se ha vendido este mismo correo en la base de datos
     let timesSold = 0;
     if(sale.accountEmail && sale.accountEmail.trim() !== '') {
         const emailStr = sale.accountEmail.toLowerCase();
         timesSold = currentSales.filter(s => s.accountEmail && s.accountEmail.toLowerCase() === emailStr).length;
     }
-    
     document.getElementById('infoTimesSold').innerText = timesSold;
     openModal('saleInfoModal');
 }
 
 window.deleteSale = async function(saleId) {
-    if(!confirm("¿Deseas ELIMINAR esta venta? Su valor desaparecerá de las ganancias y el STOCK regresará al inventario.")) return;
+    if(!confirm("¿Deseas ELIMINAR esta venta? El STOCK regresará al inventario automáticamente.")) return;
     
     const sale = currentSales.find(s => s.id === saleId);
     if(!sale) return;
 
     try {
-        // Eliminar venta
         await deleteDoc(doc(db, "sales", saleId));
 
-        // Restaurar stock del producto principal
         const pRef = doc(db, "inventory", sale.productId);
         const pSnap = await getDoc(pRef);
-        if(pSnap.exists()) {
-            await updateDoc(pRef, { stock: pSnap.data().stock + sale.quantity });
-        }
+        if(pSnap.exists()) { await updateDoc(pRef, { stock: pSnap.data().stock + sale.quantity }); }
 
-        // Restaurar stock si era un combo
         if(sale.isCombo && sale.comboItems) {
             for(let itemId of sale.comboItems) {
                 const cRef = doc(db, "inventory", itemId);
                 const cSnap = await getDoc(cRef);
-                if(cSnap.exists()) {
-                    await updateDoc(cRef, { stock: cSnap.data().stock + sale.quantity });
-                }
+                if(cSnap.exists()) { await updateDoc(cRef, { stock: cSnap.data().stock + sale.quantity }); }
             }
         }
     } catch (e) { alert("Error al eliminar venta."); }
+}
+
+function updatePartnerSplit(netProfit) {
+    const half = netProfit / 2;
+    document.getElementById('partner1Cut').innerText = formatMoney(half);
+    document.getElementById('partner2Cut').innerText = formatMoney(half);
 }
 
 function listenToSales() {
@@ -402,13 +606,14 @@ function listenToSales() {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Sin ventas.</td></tr>';
             document.getElementById('totalRevenue').innerText = "$0";
             document.getElementById('totalProfit').innerText = "$0";
-            document.getElementById('totalSalesCount').innerText = "0"; return;
+            document.getElementById('totalSalesCount').innerText = "0"; 
+            updatePartnerSplit(0); return;
         }
 
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
             data.id = docSnap.id;
-            currentSales.push(data); // Guardamos para la info y borrado
+            currentSales.push(data);
 
             revenue += data.total || 0; salesCount += data.quantity || 0; totalProfit += data.profit || 0;
             const dateStr = data.date ? `${data.date.toDate().toLocaleDateString()} ${data.date.toDate().getHours()}:${data.date.toDate().getMinutes().toString().padStart(2, '0')}` : 'Reciente';
@@ -417,18 +622,21 @@ function listenToSales() {
                 <tr>
                     <td class="text-muted" style="font-size:0.85rem;">${dateStr}</td>
                     <td><strong>${data.isCombo ? "⚡" : ""} ${data.productName}</strong></td>
-                    <td>
-                        <button class="btn-icon-sm" onclick="showSaleInfo('${data.id}')">📝 VER INFO</button>
-                    </td>
+                    <td><button class="btn-icon-sm" onclick="showSaleInfo('${data.id}')">📝 VER INFO</button></td>
                     <td class="accent-text"><strong>${formatMoney(data.total || 0)}</strong><br><span style="font-size:0.7rem;color:gray;">Cant: ${data.quantity}</span></td>
                     <td>
-                        <button class="btn-icon-sm danger" onclick="deleteSale('${data.id}')" title="Eliminar Venta y Devolver Stock">🗑️</button>
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn-icon-sm warning" onclick="openEditSale('${data.id}')" title="Editar">✏️</button>
+                            <button class="btn-icon-sm danger" onclick="deleteSale('${data.id}')" title="Eliminar y Devolver Stock">🗑️</button>
+                        </div>
                     </td>
                 </tr>
             `;
         });
+        
         document.getElementById('totalRevenue').innerText = formatMoney(revenue);
         document.getElementById('totalProfit').innerText = formatMoney(totalProfit);
         document.getElementById('totalSalesCount').innerText = salesCount;
+        updatePartnerSplit(totalProfit);
     });
 }
