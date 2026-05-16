@@ -3,7 +3,7 @@
 // ==========================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import { 
-    getFirestore, collection, addDoc, doc, updateDoc, 
+    getFirestore, collection, addDoc, doc, updateDoc, getDoc, setDoc,
     onSnapshot, query, orderBy, serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
@@ -24,21 +24,23 @@ const db = getFirestore(app, "foro");
 
 const inventoryRef = collection(db, "inventory");
 const salesRef = collection(db, "sales");
+const settingsRef = doc(db, "settings", "categories");
 
 let currentProducts = []; 
+let currentCategories = ["Netflix", "Disney+", "Amazon Prime", "Spotify", "HBO Max", "Crunchyroll"]; // Base por defecto
+let comboSelectedApps = []; 
 
 // ==========================================
-// CONTROL DE UI Y EVENTOS
+// INICIALIZACIÓN Y EVENTOS
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- LÓGICA MODO OSCURO ---
+    // --- TEMA OSCURO ---
     const themeBtn = document.getElementById('themeToggle');
     if(localStorage.getItem('uraniumTheme') === 'dark') {
         document.body.classList.add('dark-mode');
         themeBtn.innerText = "☀️";
     }
-
     themeBtn.addEventListener('click', () => {
         document.body.classList.toggle('dark-mode');
         const isDark = document.body.classList.contains('dark-mode');
@@ -46,138 +48,339 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('uraniumTheme', isDark ? 'dark' : 'light');
     });
 
-    // --- NAVEGACIÓN POR PESTAÑAS (TABS) ---
+    // --- PESTAÑAS (TABS) ---
     const tabBtns = document.querySelectorAll('.tab-btn');
     const viewSections = document.querySelectorAll('.view-section');
 
     tabBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
-            // Quitar clase active a todos los botones y ocultar secciones
             tabBtns.forEach(b => b.classList.remove('active'));
             viewSections.forEach(sec => sec.classList.remove('active'));
-
-            // Activar botón clickeado y mostrar su sección correspondiente
             e.currentTarget.classList.add('active');
-            const targetId = e.currentTarget.getAttribute('data-target');
-            document.getElementById(targetId).classList.add('active');
+            document.getElementById(e.currentTarget.getAttribute('data-target')).classList.add('active');
         });
     });
 
-    // --- MODALES ---
-    document.getElementById('btnOpenProductModal').addEventListener('click', () => {
-        openModal('productModal');
+    // --- ABRIR MODALES ---
+    document.getElementById('btnOpenProductModal').addEventListener('click', () => openModal('productModal'));
+    document.getElementById('btnOpenComboModal').addEventListener('click', () => {
+        resetComboBuilder();
+        openModal('comboModal');
     });
-    
     document.getElementById('btnOpenSaleModal').addEventListener('click', () => {
         populateSalesDropdown();
-        calculateTotal(); 
+        document.getElementById('saleTotalText').innerText = "$0 COP";
         openModal('saleModal');
     });
 
+    // --- CERRAR MODALES ---
     document.querySelectorAll('[data-close]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const targetId = e.currentTarget.getAttribute('data-close');
-            closeModal(targetId);
-        });
+        btn.addEventListener('click', (e) => closeModal(e.currentTarget.getAttribute('data-close')));
     });
 
-    // --- BOTONES DE FORMULARIO ---
+    // --- CATEGORÍAS ---
+    document.getElementById('btnAddCategory').addEventListener('click', handleAddCategory);
+    document.getElementById('inventoryFilter').addEventListener('change', renderInventoryTable);
+
+    // --- BOTONES DE GUARDAR ---
     document.getElementById('submitProductBtn').addEventListener('click', handleAddProduct);
     document.getElementById('submitSaleBtn').addEventListener('click', handleRegisterSale);
+    document.getElementById('submitComboBtn').addEventListener('click', handleSaveCombo);
     
-    document.getElementById('saleQuantity').addEventListener('input', calculateTotal);
-    document.getElementById('saleProductSelect').addEventListener('change', calculateTotal);
+    // --- CALCULADORAS DINÁMICAS ---
+    document.getElementById('saleQuantity').addEventListener('input', calculateSaleTotal);
+    document.getElementById('saleProductSelect').addEventListener('change', calculateSaleTotal);
+    document.getElementById('comboFinalPrice').addEventListener('input', calculateComboFinancials);
 
-    // --- INICIALIZAR LECTURA DE DATOS ---
+    // --- INICIAR DATOS ---
+    listenToCategories();
     listenToInventory();
     listenToSales();
 });
 
-// Animación de Modales
-function openModal(modalId) {
-    document.getElementById(modalId).classList.add('active');
-}
-
+// Utilidades
+function openModal(modalId) { document.getElementById(modalId).classList.add('active'); }
 function closeModal(modalId) {
     document.getElementById(modalId).classList.remove('active');
-    setTimeout(clearForms, 300);
+    setTimeout(() => {
+        if(modalId === 'productModal') {
+            document.getElementById('prodName').value = '';
+            document.getElementById('prodPrice').value = '';
+            document.getElementById('prodCost').value = '';
+            document.getElementById('prodStock').value = '';
+        }
+        if(modalId === 'saleModal') {
+            document.getElementById('saleQuantity').value = '1';
+            document.getElementById('saleError').innerText = '';
+        }
+    }, 300);
 }
-
-function clearForms() {
-    document.getElementById('prodName').value = '';
-    document.getElementById('prodPrice').value = '';
-    document.getElementById('prodStock').value = '';
-    document.getElementById('saleProductSelect').value = '';
-    document.getElementById('saleQuantity').value = '1';
-    document.getElementById('saleError').innerText = '';
-    document.getElementById('saleTotalText').innerText = '$0 COP';
-}
-
-const formatMoney = (amount) => {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
-};
+const formatMoney = (amount) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
 
 // ==========================================
-// FIREBASE: GESTIÓN DE INVENTARIO
+// CATEGORÍAS
+// ==========================================
+async function listenToCategories() {
+    try {
+        onSnapshot(settingsRef, (docSnap) => {
+            if (docSnap.exists()) {
+                currentCategories = docSnap.data().list || currentCategories;
+            } else {
+                setDoc(settingsRef, { list: currentCategories }).catch(()=>console.log("No se pudo crear settings, usando locales"));
+            }
+            updateCategorySelects();
+        }, (error) => {
+            console.warn("Reglas de Firestore bloquean Settings. Usando categorías locales.", error);
+            updateCategorySelects();
+        });
+    } catch (e) {
+        updateCategorySelects();
+    }
+}
+
+function updateCategorySelects() {
+    const prodSelect = document.getElementById('prodCategory');
+    const filterSelect = document.getElementById('inventoryFilter');
+    
+    prodSelect.innerHTML = '<option value="">-- Selecciona --</option>';
+    filterSelect.innerHTML = '<option value="ALL">Todas las Categorías</option>';
+
+    currentCategories.forEach(cat => {
+        prodSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+        filterSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+    });
+}
+
+async function handleAddCategory() {
+    const newCat = prompt("Escribe el nombre de la nueva categoría:");
+    if (!newCat || newCat.trim() === "") return;
+    
+    const catName = newCat.trim();
+    if(!currentCategories.includes(catName)) {
+        currentCategories.push(catName);
+        updateCategorySelects(); // Actualiza UI inmediatamente
+        document.getElementById('prodCategory').value = catName;
+        
+        try {
+            await setDoc(settingsRef, { list: currentCategories }, { merge: true });
+        } catch (e) {
+            console.error("No se guardó en Firebase por reglas, pero funcionará localmente.", e);
+        }
+    } else {
+        document.getElementById('prodCategory').value = catName;
+    }
+}
+
+// ==========================================
+// FIREBASE: INVENTARIO
 // ==========================================
 async function handleAddProduct() {
+    const category = document.getElementById('prodCategory').value;
     const name = document.getElementById('prodName').value.trim();
+    const cost = parseFloat(document.getElementById('prodCost').value);
     const price = parseFloat(document.getElementById('prodPrice').value);
     const stock = parseInt(document.getElementById('prodStock').value);
     const btn = document.getElementById('submitProductBtn');
 
-    if (!name || isNaN(price) || isNaN(stock)) {
-        alert("Por favor, llena todos los campos correctamente."); return;
+    if (!category || !name || isNaN(cost) || isNaN(price) || isNaN(stock)) {
+        alert("Llena todos los campos."); return;
     }
 
     btn.innerText = "GUARDANDO..."; btn.disabled = true;
 
     try {
-        await addDoc(inventoryRef, { name, price, stock, createdAt: serverTimestamp() });
+        await addDoc(inventoryRef, { category, name, cost, price, stock, isCombo: false, createdAt: serverTimestamp() });
         closeModal('productModal');
     } catch (error) {
-        console.error(error); alert("Error de escritura en base de datos.");
+        alert("Error de DB. Revisa permisos.");
     } finally {
-        btn.innerText = "GUARDAR EN INVENTARIO"; btn.disabled = false;
+        btn.innerText = "GUARDAR PRODUCTO"; btn.disabled = false;
     }
 }
 
 function listenToInventory() {
     const q = query(inventoryRef, orderBy("createdAt", "desc"));
     onSnapshot(q, (snapshot) => {
-        const tbody = document.getElementById('inventoryBody');
-        tbody.innerHTML = ''; currentProducts = []; let totalStock = 0;
-
-        if (snapshot.empty) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Aún no hay productos registrados.</td></tr>';
-            document.getElementById('totalStockCount').innerText = "0";
-            return;
-        }
-
+        currentProducts = [];
         snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            currentProducts.push({ id: docSnap.id, ...data }); 
-            totalStock += data.stock;
-
-            const statusBadge = data.stock > 0 
-                ? `<span class="badge-ok">DISPONIBLE</span>` 
-                : `<span class="badge-empty">AGOTADO</span>`;
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><strong>${data.name}</strong></td>
-                <td class="accent-text">${formatMoney(data.price)}</td>
-                <td><span class="badge-stock">${data.stock}</span></td>
-                <td>${statusBadge}</td>
-            `;
-            tbody.appendChild(tr);
+            currentProducts.push({ id: docSnap.id, ...docSnap.data() });
         });
-        document.getElementById('totalStockCount').innerText = totalStock;
+        renderInventoryTable();
+        
+        if(document.getElementById('comboModal').classList.contains('active')) {
+            renderComboSourceApps();
+        }
     });
 }
 
+function renderInventoryTable() {
+    const tbody = document.getElementById('inventoryBody');
+    const filter = document.getElementById('inventoryFilter').value;
+    tbody.innerHTML = ''; 
+    let totalStock = 0;
+
+    const filtered = filter === "ALL" ? currentProducts : currentProducts.filter(p => p.category === filter);
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Inventario vacío.</td></tr>';
+        document.getElementById('totalStockCount').innerText = "0"; return;
+    }
+
+    filtered.forEach(data => {
+        totalStock += data.stock;
+        const statusBadge = data.stock > 0 ? `<span class="badge-ok">DISP</span>` : `<span class="badge-empty">AGOTADO</span>`;
+        const catBadge = data.isCombo ? `<span class="text-warning">⚡ COMBO</span>` : data.category;
+
+        tbody.innerHTML += `
+            <tr>
+                <td><strong>${data.name}</strong></td>
+                <td style="font-size:0.8rem;">${catBadge}</td>
+                <td class="text-muted">${formatMoney(data.cost)}</td>
+                <td class="accent-text">${formatMoney(data.price)}</td>
+                <td><span class="badge-stock">${data.stock}</span></td>
+                <td>${statusBadge}</td>
+            </tr>
+        `;
+    });
+    document.getElementById('totalStockCount').innerText = totalStock;
+}
+
 // ==========================================
-// FIREBASE: REGISTRO DE VENTAS
+// CREADOR DE COMBOS (Toque en Celular)
+// ==========================================
+function resetComboBuilder() {
+    comboSelectedApps = [];
+    document.getElementById('comboName').value = '';
+    document.getElementById('comboFinalPrice').value = '';
+    
+    const slots = document.querySelectorAll('.combo-slot');
+    slots.forEach(slot => {
+        slot.innerHTML = 'Toca una<br>App';
+        slot.classList.add('empty');
+        slot.removeAttribute('data-app-id');
+    });
+    
+    renderComboSourceApps();
+    calculateComboFinancials();
+}
+
+function renderComboSourceApps() {
+    const grid = document.getElementById('appsSourceGrid');
+    grid.innerHTML = '';
+    
+    const available = currentProducts.filter(p => p.stock > 0 && !p.isCombo);
+    
+    available.forEach(app => {
+        const div = document.createElement('div');
+        div.className = 'app-icon';
+        // En lugar de arrastrar, ahora damos CLIC/TOQUE
+        div.onclick = () => addAppToComboSlot(app.id);
+        
+        let shortName = app.name.substring(0, 8);
+        div.innerHTML = `<strong>${shortName}</strong><br><span style="font-size:9px">${formatMoney(app.price)}</span>`;
+        grid.appendChild(div);
+    });
+}
+
+function addAppToComboSlot(appId) {
+    const appData = currentProducts.find(p => p.id === appId);
+    if(!appData) return;
+
+    // Buscar la primera ranura vacía
+    const emptySlot = document.querySelector('.combo-slot.empty');
+    if(!emptySlot) {
+        alert("Las 5 ranuras ya están llenas. Quita una para agregar más.");
+        return;
+    }
+
+    // Llenar la ranura
+    emptySlot.classList.remove('empty');
+    emptySlot.dataset.appId = appId;
+    emptySlot.innerHTML = `
+        <div class="app-icon combo-item" style="width:100%; height:100%; border:none;">
+            <strong>${appData.name.substring(0,6)}</strong>
+        </div>
+        <div class="remove-app" onclick="removeAppFromSlot(this)">x</div>
+    `;
+    
+    comboSelectedApps.push(appData);
+    calculateComboFinancials();
+}
+
+// Quitar app de la ranura
+window.removeAppFromSlot = function(element) {
+    const slot = element.parentElement;
+    const appId = slot.dataset.appId;
+    
+    const index = comboSelectedApps.findIndex(a => a.id === appId);
+    if(index > -1) comboSelectedApps.splice(index, 1);
+    
+    slot.innerHTML = 'Toca una<br>App';
+    slot.classList.add('empty');
+    slot.removeAttribute('data-app-id');
+    
+    calculateComboFinancials();
+};
+
+function calculateComboFinancials() {
+    let totalCost = 0;
+    let regularPrice = 0;
+    
+    comboSelectedApps.forEach(app => {
+        totalCost += app.cost;
+        regularPrice += app.price;
+    });
+
+    document.getElementById('comboTotalCost').innerText = formatMoney(totalCost);
+    document.getElementById('comboRegularPrice').innerText = formatMoney(regularPrice);
+
+    const inputPriceStr = document.getElementById('comboFinalPrice').value;
+    const finalPrice = inputPriceStr ? parseFloat(inputPriceStr) : 0;
+
+    const discount = regularPrice - finalPrice;
+    const profit = finalPrice - totalCost;
+
+    document.getElementById('comboDiscount').innerText = finalPrice > 0 ? formatMoney(discount) : "$0";
+    document.getElementById('comboProfit').innerText = finalPrice > 0 ? formatMoney(profit) : "$0";
+}
+
+async function handleSaveCombo() {
+    const name = document.getElementById('comboName').value.trim();
+    const finalPrice = parseFloat(document.getElementById('comboFinalPrice').value);
+    const errorDiv = document.getElementById('comboError');
+    const btn = document.getElementById('submitComboBtn');
+
+    if(comboSelectedApps.length < 2) {
+        errorDiv.innerText = "Selecciona al menos 2 aplicaciones tocándolas."; return;
+    }
+    if(!name || isNaN(finalPrice) || finalPrice <= 0) {
+        errorDiv.innerText = "Ingresa un nombre y precio de venta válido."; return;
+    }
+
+    let baseCost = 0;
+    comboSelectedApps.forEach(a => baseCost += a.cost);
+    const minStock = Math.min(...comboSelectedApps.map(a => a.stock));
+
+    btn.innerText = "CREANDO..."; btn.disabled = true; errorDiv.innerText = "";
+
+    try {
+        const comboItemIds = comboSelectedApps.map(a => a.id);
+        
+        await addDoc(inventoryRef, {
+            name: name, category: "COMBOS", cost: baseCost, price: finalPrice,
+            stock: minStock, isCombo: true, comboItems: comboItemIds, createdAt: serverTimestamp()
+        });
+        
+        closeModal('comboModal');
+    } catch (error) {
+        errorDiv.innerText = "Error al crear combo.";
+    } finally {
+        btn.innerText = "GUARDAR COMBO EN INVENTARIO"; btn.disabled = false;
+    }
+}
+
+// ==========================================
+// FIREBASE: VENTAS
 // ==========================================
 function populateSalesDropdown() {
     const select = document.getElementById('saleProductSelect');
@@ -185,25 +388,21 @@ function populateSalesDropdown() {
     
     currentProducts.forEach(prod => {
         if(prod.stock > 0) {
-            const option = document.createElement('option');
-            option.value = prod.id;
-            option.textContent = `${prod.name} (${formatMoney(prod.price)}) - Disp: ${prod.stock}`;
-            select.appendChild(option);
+            const prefix = prod.isCombo ? "⚡" : "";
+            select.innerHTML += `<option value="${prod.id}">${prefix} ${prod.name} - Disp: ${prod.stock}</option>`;
         }
     });
 }
 
-function calculateTotal() {
+function calculateSaleTotal() {
     const select = document.getElementById('saleProductSelect');
     const quantity = parseInt(document.getElementById('saleQuantity').value) || 0;
     const totalText = document.getElementById('saleTotalText');
     
-    if (!select.value) {
-        totalText.innerText = "$0 COP"; return;
-    }
+    if (!select.value) { totalText.innerText = "$0 COP"; return; }
 
-    const selectedProduct = currentProducts.find(p => p.id === select.value);
-    if (selectedProduct) totalText.innerText = formatMoney(selectedProduct.price * quantity);
+    const prod = currentProducts.find(p => p.id === select.value);
+    if (prod) totalText.innerText = formatMoney(prod.price * quantity);
 }
 
 async function handleRegisterSale() {
@@ -218,23 +417,36 @@ async function handleRegisterSale() {
 
     const product = currentProducts.find(p => p.id === prodId);
     if (quantity > product.stock) {
-        errorDiv.innerText = `Límite excedido. Solo hay ${product.stock} unidades.`; return;
+        errorDiv.innerText = `Solo hay ${product.stock} unidades.`; return;
     }
 
     btn.innerText = "PROCESANDO..."; btn.disabled = true; errorDiv.innerText = "";
 
     try {
+        const totalSale = product.price * quantity;
+        const totalCost = product.cost * quantity;
+        const profit = totalSale - totalCost;
+
         await addDoc(salesRef, {
             productId: product.id, productName: product.name,
-            quantity: quantity, total: (product.price * quantity),
-            date: serverTimestamp()
+            quantity: quantity, total: totalSale, profit: profit,
+            isCombo: product.isCombo || false, date: serverTimestamp()
         });
 
         await updateDoc(doc(db, "inventory", product.id), { stock: product.stock - quantity });
+        
+        if(product.isCombo && product.comboItems) {
+            for(const itemId of product.comboItems) {
+                const subItem = currentProducts.find(p => p.id === itemId);
+                if(subItem) {
+                    await updateDoc(doc(db, "inventory", subItem.id), { stock: subItem.stock - quantity });
+                }
+            }
+        }
+
         closeModal('saleModal');
     } catch (error) {
-        errorDiv.innerText = "Fallo de conexión al servidor.";
-        console.error(error);
+        errorDiv.innerText = "Error en base de datos.";
     } finally {
         btn.innerText = "CONFIRMAR VENTA"; btn.disabled = false;
     }
@@ -244,35 +456,38 @@ function listenToSales() {
     const q = query(salesRef, orderBy("date", "desc"));
     onSnapshot(q, (snapshot) => {
         const tbody = document.getElementById('salesBody');
-        tbody.innerHTML = ''; let revenue = 0; let salesCount = 0;
+        tbody.innerHTML = ''; let revenue = 0; let salesCount = 0; let totalProfit = 0;
 
         if (snapshot.empty) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No se han registrado ventas.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Sin ventas.</td></tr>';
             document.getElementById('totalRevenue').innerText = "$0";
+            document.getElementById('totalProfit').innerText = "$0";
             document.getElementById('totalSalesCount').innerText = "0"; return;
         }
 
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
             revenue += data.total; salesCount += data.quantity;
+            totalProfit += (data.profit || 0);
             
-            // Formatear fecha y hora
             let dateStr = 'Reciente';
             if(data.date) {
                 const d = data.date.toDate();
-                dateStr = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`;
+                dateStr = `${d.getDate()}/${d.getMonth()+1} ${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`;
             }
 
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="text-muted" style="font-size:0.85rem;">${dateStr}</td>
-                <td><strong>${data.productName}</strong></td>
-                <td><span class="badge-stock">${data.quantity}</span></td>
-                <td class="accent-text"><strong>${formatMoney(data.total)}</strong></td>
+            const prefix = data.isCombo ? "⚡" : "";
+            tbody.innerHTML += `
+                <tr>
+                    <td class="text-muted" style="font-size:0.85rem;">${dateStr}</td>
+                    <td><strong>${prefix} ${data.productName}</strong></td>
+                    <td><span class="badge-stock">${data.quantity}</span></td>
+                    <td class="accent-text"><strong>${formatMoney(data.total)}</strong></td>
+                </tr>
             `;
-            tbody.appendChild(tr);
         });
         document.getElementById('totalRevenue').innerText = formatMoney(revenue);
+        document.getElementById('totalProfit').innerText = formatMoney(totalProfit);
         document.getElementById('totalSalesCount').innerText = salesCount;
     });
 }
