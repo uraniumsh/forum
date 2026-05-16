@@ -1,5 +1,5 @@
 // ==========================================
-// IMPORTACIONES FIREBASE (SDK v10.8.0 ESTABLE)
+// IMPORTACIONES FIREBASE (SDK v10.8.0)
 // ==========================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { 
@@ -20,7 +20,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app); // SE QUITA EL "foro" PARA QUE USE LA BASE POR DEFECTO
+const db = getFirestore(app);
 
 const inventoryRef = collection(db, "inventory");
 const salesRef = collection(db, "sales");
@@ -35,6 +35,7 @@ let comboSelectedApps = [];
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     
+    // TEMA OSCURO
     const themeBtn = document.getElementById('themeToggle');
     if(localStorage.getItem('uraniumTheme') === 'dark') {
         document.body.classList.add('dark-mode'); themeBtn.innerText = "☀️";
@@ -45,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('uraniumTheme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
     });
 
+    // PESTAÑAS (TABS)
     const tabBtns = document.querySelectorAll('.tab-btn');
     const viewSections = document.querySelectorAll('.view-section');
 
@@ -57,20 +59,34 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // ABRIR MODALES
     document.getElementById('btnOpenProductModal').addEventListener('click', () => openModal('productModal'));
+    
+    // Abrir modal aislado de categoría
+    document.getElementById('btnOpenCategoryModal').addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('newCategoryInput').value = '';
+        document.getElementById('categoryError').innerText = '';
+        openModal('categoryModal');
+    });
+
     document.getElementById('btnOpenComboModal').addEventListener('click', () => {
         resetComboBuilder(); openModal('comboModal');
     });
+    
     document.getElementById('btnOpenSaleModal').addEventListener('click', () => {
         populateSalesDropdown(); document.getElementById('saleTotalText').innerText = "$0 COP"; openModal('saleModal');
     });
 
+    // CERRAR MODALES
     document.querySelectorAll('[data-close]').forEach(btn => {
         btn.addEventListener('click', (e) => closeModal(e.currentTarget.getAttribute('data-close')));
     });
 
+    // BOTONES DE ACCIÓN
     document.getElementById('inventoryFilter').addEventListener('change', renderInventoryTable);
-
+    
+    document.getElementById('submitCategoryBtn').addEventListener('click', handleAddCategory);
     document.getElementById('submitProductBtn').addEventListener('click', handleAddProduct);
     document.getElementById('submitSaleBtn').addEventListener('click', handleRegisterSale);
     document.getElementById('submitComboBtn').addEventListener('click', handleSaveCombo);
@@ -79,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('saleProductSelect').addEventListener('change', calculateSaleTotal);
     document.getElementById('comboFinalPrice').addEventListener('input', calculateComboFinancials);
 
+    // INICIAR CONEXIÓN
     listenToCategories();
     listenToInventory();
     listenToSales();
@@ -103,12 +120,15 @@ function closeModal(modalId) {
 const formatMoney = (amount) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
 
 // ==========================================
-// CATEGORÍAS
+// CATEGORÍAS (Lógica aislada en el mismo archivo)
 // ==========================================
 function listenToCategories() {
     try {
         onSnapshot(settingsRef, (docSnap) => {
-            if (docSnap.exists()) currentCategories = docSnap.data().list || currentCategories;
+            if (docSnap.exists() && docSnap.data().list) currentCategories = docSnap.data().list;
+            updateCategorySelects();
+        }, (err) => {
+            console.log("Aviso: Permisos de Firestore no permiten leer settings. Usando base local.");
             updateCategorySelects();
         });
     } catch(e) { updateCategorySelects(); }
@@ -125,6 +145,37 @@ function updateCategorySelects() {
         prodSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
         filterSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
     });
+}
+
+async function handleAddCategory() {
+    const inputEl = document.getElementById('newCategoryInput');
+    const errorDiv = document.getElementById('categoryError');
+    const btn = document.getElementById('submitCategoryBtn');
+    const newCat = inputEl.value.trim();
+
+    if (!newCat) { errorDiv.innerText = "Escribe un nombre válido."; return; }
+
+    if(currentCategories.map(c => c.toLowerCase()).includes(newCat.toLowerCase())) {
+        errorDiv.innerText = "Esta categoría ya existe."; return;
+    }
+
+    btn.innerText = "GUARDANDO..."; btn.disabled = true; errorDiv.innerText = "";
+
+    // 1. Guardar local y actualizar selects inmediatamente para UX fluida
+    currentCategories.push(newCat);
+    updateCategorySelects();
+    document.getElementById('prodCategory').value = newCat;
+
+    // 2. Intentar guardar en Firestore
+    try {
+        await setDoc(settingsRef, { list: currentCategories }, { merge: true });
+        closeModal('categoryModal');
+    } catch (e) {
+        console.warn("Se guardó localmente. Error Firestore:", e);
+        closeModal('categoryModal');
+    } finally {
+        btn.innerText = "AÑADIR CATEGORÍA"; btn.disabled = false;
+    }
 }
 
 // ==========================================
@@ -144,10 +195,10 @@ async function handleAddProduct() {
 
     try {
         await addDoc(inventoryRef, { category, name, cost, price, stock, isCombo: false, createdAt: serverTimestamp() });
-        alert("✅ Producto guardado en la Nube de Firebase."); // ALERTA DE ÉXITO
+        alert("✅ Producto guardado en la Base de Datos.");
         closeModal('productModal');
     } catch (error) {
-        alert("❌ Fallo en Firebase: " + error.message); // ALERTA DE ERROR
+        alert("❌ Error: " + error.message);
     } finally {
         btn.innerText = "GUARDAR PRODUCTO"; btn.disabled = false;
     }
@@ -287,7 +338,7 @@ async function handleSaveCombo() {
         alert("✅ Combo guardado en Firebase.");
         closeModal('comboModal');
     } catch (error) {
-        alert("❌ Error de DB: " + error.message);
+        errorDiv.innerText = "Error: " + error.message;
     } finally {
         btn.innerText = "GUARDAR COMBO EN INVENTARIO"; btn.disabled = false;
     }
@@ -345,7 +396,7 @@ async function handleRegisterSale() {
         alert("✅ Venta registrada y descontada del stock.");
         closeModal('saleModal');
     } catch (error) { 
-        alert("❌ Fallo de venta: " + error.message); 
+        errorDiv.innerText = "Error al procesar: " + error.message; 
     } finally { 
         btn.innerText = "CONFIRMAR VENTA"; btn.disabled = false; 
     }
