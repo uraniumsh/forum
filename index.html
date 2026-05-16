@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uranium | Foro Premium</title>
+    <title>Uranium | Control de Inventario y Ventas</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
@@ -11,193 +11,124 @@
     <script type="module" src="app.js" defer></script>
 </head>
 <body>
-    <div id="banScreen" class="ban-screen hidden">
-        <div class="ban-content">
-            <h1>🚫</h1>
-            <h2 id="banMessage">ACCESO SUSPENDIDO.</h2>
-        </div>
-    </div>
 
     <header class="navbar">
-        <div class="logo" id="navLogo">URANIUM<span>FORO</span></div>
+        <div class="logo">URANIUM<span>ERP</span></div>
         <div class="user-controls">
-            <button id="adminBtn" class="accent-outline-btn hidden" data-target="adminView">PANEL ADMIN</button>
-            <div class="emerald-balance" id="openPaymentModalBtn">
-                💎 <span id="esmeraldasCount">0</span>
-            </div>
-            <button id="authBtn" class="accent-btn">INGRESAR</button>
-            <button id="logoutBtn" class="accent-outline-btn hidden">SALIR</button>
+            <button id="btnOpenProductModal" class="accent-outline-btn">NUEVO PRODUCTO</button>
+            <button id="btnOpenSaleModal" class="accent-btn">REGISTRAR VENTA</button>
         </div>
     </header>
 
-    <main id="mainContent" class="container">
+    <main class="container">
         
-        <section id="feedView" class="view-section active">
-            <div class="board-header">
-                <h2>TABLÓN PRINCIPAL</h2>
-                <button id="newPostBtn" class="accent-btn hidden">CREAR DEBATE</button>
+        <section class="metrics-grid">
+            <div class="metric-card">
+                <h3>INGRESOS TOTALES</h3>
+                <div class="metric-value accent-text" id="totalRevenue">$0</div>
             </div>
-            <div id="feedContainer" class="feed-container">
-                <div class="text-center text-muted">Cargando base de datos...</div>
+            <div class="metric-card">
+                <h3>VENTAS REALIZADAS</h3>
+                <div class="metric-value" id="totalSalesCount">0</div>
+            </div>
+            <div class="metric-card">
+                <h3>PRODUCTOS EN STOCK</h3>
+                <div class="metric-value" id="totalStockCount">0</div>
             </div>
         </section>
 
-        <section id="adminView" class="view-section hidden">
-            <div class="admin-header">
-                <h2 class="accent-text">SISTEMA CORE</h2>
-            </div>
-            
-            <div class="admin-grid">
-                <div class="admin-card">
-                    <h3>SANCIONES</h3>
-                    <div class="form-group">
-                        <input type="text" id="targetUserId" placeholder="UID del Usuario">
-                    </div>
-                    <div class="form-group">
-                        <select id="sanctionType">
-                            <option value="none">Levantar Sanción</option>
-                            <option value="partialBan">Baneo Parcial (Read-only)</option>
-                            <option value="totalBan">Baneo Total</option>
-                            <option value="isBlacklisted">Shadowban</option>
-                        </select>
-                    </div>
-                    <button id="applySanctionBtn" class="accent-btn w-100">APLICAR CASTIGO</button>
+        <div class="tables-layout">
+            <section class="table-section">
+                <div class="section-header">
+                    <h2>INVENTARIO ACTUAL</h2>
                 </div>
+                <div class="table-container">
+                    <table id="inventoryTable">
+                        <thead>
+                            <tr>
+                                <th>PRODUCTO</th>
+                                <th>PRECIO VENTA</th>
+                                <th>STOCK</th>
+                                <th>ESTADO</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryBody">
+                            <tr><td colspan="4" class="text-center text-muted">Cargando inventario...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
-                <div class="admin-card hidden" id="superAdminCard">
-                    <h3>ROLES ADMINISTRATIVOS</h3>
-                    <div class="form-group">
-                        <input type="text" id="newAdminId" placeholder="UID del Usuario">
-                    </div>
-                    <div class="btn-group">
-                        <button id="makeAdminBtn" class="accent-btn w-100">DAR ADMIN</button>
-                        <button id="revokeAdminBtn" class="accent-outline-btn w-100">REVOCAR</button>
-                    </div>
+            <section class="table-section">
+                <div class="section-header">
+                    <h2>ÚLTIMAS VENTAS</h2>
                 </div>
-            </div>
-        </section>
+                <div class="table-container">
+                    <table id="salesTable">
+                        <thead>
+                            <tr>
+                                <th>FECHA</th>
+                                <th>PRODUCTO</th>
+                                <th>CANT.</th>
+                                <th>TOTAL INGRESADO</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salesBody">
+                            <tr><td colspan="4" class="text-center text-muted">Cargando ventas...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
     </main>
 
-    <div id="loginModal" class="modal hidden">
+    <div id="productModal" class="modal hidden">
         <div class="modal-content square-modal">
-            <button class="close-btn" data-close="loginModal">&times;</button>
-            <h2 class="accent-text text-center title-font">AUTENTICACIÓN</h2>
-            <div class="form-group mt-20">
-                <label>Correo Electrónico:</label>
-                <input type="email" id="loginEmail" placeholder="juanrivera@urm.co">
-            </div>
-            <div class="form-group">
-                <label>Contraseña:</label>
-                <input type="password" id="loginPass" placeholder="••••••••">
-            </div>
-            <button id="submitLoginBtn" class="accent-btn w-100 mt-20">INICIAR SESIÓN</button>
-            <div id="loginError" class="text-center mt-10 error-text"></div>
-        </div>
-    </div>
-
-    <div id="postModal" class="modal hidden">
-        <div class="modal-content square-modal">
-            <button class="close-btn" data-close="postModal">&times;</button>
-            <h2 class="accent-text title-font">NUEVO DEBATE</h2>
-            <div class="form-group mt-20">
-                <label>Título:</label>
-                <input type="text" id="postTitle" placeholder="Ej. Reglas del foro">
-            </div>
-            <div class="form-group">
-                <label>Contenido:</label>
-                <textarea id="postContent" rows="6" placeholder="Desarrolla tu idea..."></textarea>
-            </div>
-            <button id="submitPostBtn" class="accent-btn w-100">PUBLICAR</button>
-        </div>
-    </div>
-
-    <div id="paymentModal" class="modal hidden">
-        <div class="modal-content square-modal" style="max-width: 650px;">
-            <button class="close-btn" data-close="paymentModal">&times;</button>
+            <button class="close-btn" data-close="productModal">&times;</button>
+            <h2 class="accent-text title-font">AGREGAR AL INVENTARIO</h2>
             
-            <div id="step1">
-                <h2 class="accent-text text-center title-font">MERCADO DE GEMAS</h2>
-                <div class="gem-grid">
-                    <div class="gem-box" data-amount="100" data-price="5000">
-                        <div class="gem-icon">💎</div>
-                        <div class="gem-amount">100</div>
-                        <div class="gem-price">$5.000 COP</div>
-                    </div>
-                    <div class="gem-box" data-amount="300" data-price="12000">
-                        <div class="gem-icon">💎💎</div>
-                        <div class="gem-amount">300</div>
-                        <div class="gem-price">$12.000 COP</div>
-                    </div>
-                    <div class="gem-box" data-amount="500" data-price="20000">
-                        <div class="gem-icon">💎💎💎</div>
-                        <div class="gem-amount">500</div>
-                        <div class="gem-price">$20.000 COP</div>
-                    </div>
-                    <div class="gem-box" data-amount="1000" data-price="35000">
-                        <div class="gem-icon">🔮</div>
-                        <div class="gem-amount">1000</div>
-                        <div class="gem-price">$35.000 COP</div>
-                    </div>
-                    <div class="gem-box premium-box" data-amount="1500" data-price="50000">
-                        <div class="gem-icon">👑</div>
-                        <div class="gem-amount">1500</div>
-                        <div class="gem-price">$50.000 COP</div>
-                    </div>
-                    <div class="gem-box premium-box" data-amount="3000" data-price="95000">
-                        <div class="gem-icon">👑💎</div>
-                        <div class="gem-amount">3000</div>
-                        <div class="gem-price">$95.000 COP</div>
-                    </div>
-                    <div class="gem-box ultra-box" data-amount="5000" data-price="150000">
-                        <div class="gem-icon">⚡</div>
-                        <div class="gem-amount">5000</div>
-                        <div class="gem-price">$150.000 COP</div>
-                    </div>
-                    <div class="gem-box ultra-box" data-amount="10000" data-price="280000">
-                        <div class="gem-icon">🔥</div>
-                        <div class="gem-amount">10000</div>
-                        <div class="gem-price">$280.000 COP</div>
-                    </div>
-                </div>
+            <div class="form-group mt-20">
+                <label>Nombre del Producto:</label>
+                <input type="text" id="prodName" placeholder="Ej. Perfil Netflix, Tenis Nike, etc.">
             </div>
-
-            <div id="step2" class="hidden">
-                <h2 class="accent-text title-font">FACTURACIÓN</h2>
-                <p class="text-muted mb-20">Has seleccionado: <strong id="selectedPackText" class="accent-text"></strong></p>
-                
-                <div class="form-group">
-                    <label>Nombre Legal:</label>
-                    <input type="text" id="nombreCompleto" placeholder="Tu nombre">
-                </div>
-                <div class="form-group">
-                    <label>Nequi de Origen:</label>
-                    <input type="number" id="nequiNum" placeholder="3000000000">
-                </div>
-                <div class="btn-group mt-20">
-                    <button class="accent-outline-btn w-100" id="btnBackToStep1">VOLVER</button>
-                    <button class="accent-btn w-100" id="btnGoToStep3">CONTINUAR</button>
-                </div>
+            <div class="form-group">
+                <label>Precio de Venta (COP):</label>
+                <input type="number" id="prodPrice" placeholder="Ej. 15000">
             </div>
-
-            <div id="step3" class="hidden">
-                <h2 class="accent-text text-center title-font">VERIFICACIÓN</h2>
-                <div class="instruction-box">
-                    <p>Envía <strong id="montoFinal" class="accent-text"></strong> a la siguiente cuenta:</p>
-                    <h2 class="nequi-number text-center">NEQUI: 3137074357</h2>
-                </div>
-                <div class="upload-box">
-                    <p>Subir comprobante (Obligatorio)</p>
-                    <input type="file" id="comprobante" accept="image/*">
-                </div>
-                <button id="webhookBtn" class="accent-btn w-100 mt-20">ENVIAR A REVISIÓN</button>
+            <div class="form-group">
+                <label>Stock Inicial (Cantidad):</label>
+                <input type="number" id="prodStock" placeholder="Ej. 10">
             </div>
-
-            <div id="step4" class="hidden text-center">
-                <h2 class="accent-text title-font">ENVIADO</h2>
-                <p class="mt-20">El administrador verificará tu pago y las esmeraldas aparecerán en tu panel pronto.</p>
-                <button class="accent-outline-btn w-100 mt-20" data-close="paymentModal">CERRAR PANTALLA</button>
-            </div>
+            
+            <button id="submitProductBtn" class="accent-btn w-100 mt-20">GUARDAR PRODUCTO</button>
         </div>
     </div>
+
+    <div id="saleModal" class="modal hidden">
+        <div class="modal-content square-modal">
+            <button class="close-btn" data-close="saleModal">&times;</button>
+            <h2 class="accent-text title-font">REGISTRAR NUEVA VENTA</h2>
+            
+            <div class="form-group mt-20">
+                <label>Seleccionar Producto:</label>
+                <select id="saleProductSelect">
+                    <option value="">-- Elige un producto --</option>
+                    </select>
+            </div>
+            <div class="form-group">
+                <label>Cantidad Vendida:</label>
+                <input type="number" id="saleQuantity" value="1" min="1">
+            </div>
+            
+            <div class="calculator-box">
+                <p>TOTAL A COBRAR:</p>
+                <h2 id="saleTotalText" class="accent-text">$0 COP</h2>
+            </div>
+            
+            <button id="submitSaleBtn" class="accent-btn w-100 mt-20">CONFIRMAR VENTA</button>
+            <div id="saleError" class="error-text text-center mt-10"></div>
+        </div>
+    </div>
+
 </body>
 </html>
