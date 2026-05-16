@@ -1,0 +1,136 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uranium Store</title>
+    <link rel="stylesheet" href="styles.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+</head>
+<body>
+
+    <header>
+        <div class="menu-toggle" id="menu-toggle">?</div>
+        <div class="logo">URANIUM</div>
+        <div class="header-actions">
+            <span id="user-greeting" style="display:none; font-size: 0.85rem; color: #777;"></span>
+            <button id="btn-show-login">Ingresar</button>
+            <button id="btn-show-register">Registrarse</button>
+            <button id="logout-btn" style="display:none;">Salir</button>
+            <div class="cart-icon" id="cart-icon">? <span id="cart-count">0</span></div>
+        </div>
+    </header>
+
+    <div class="container">
+        <aside class="admin-panel" id="admin-panel" style="display: none;">
+            <h3>Panel de Control</h3>
+            <input type="text" id="prod-nombre" placeholder="Nombre del producto">
+            <select id="prod-categoria">
+                <option value="Netflix">Netflix</option>
+                <option value="Disney+">Disney+</option>
+                <option value="Amazon Prime">Amazon Prime</option>
+                <option value="HBO Max">HBO Max</option>
+                <option value="Spotify">Spotify Premium</option>
+                <option value="Paramount">Paramount</option>
+                <option value="Vix">Vix</option>
+                <option value="Crunchyroll">Crunchyroll</option>
+                <option value="Plex">Plex</option>
+                <option value="Win Play">Win Play</option>
+                <option value="YouTube Premium">YouTube Premium</option>
+                <option value="Combos">Combos</option>
+                <option value="Promociones">Promociones</option>
+            </select>
+            <input type="number" id="prod-precio" placeholder="Precio (ej: 18000)">
+            <input type="text" id="prod-img" placeholder="URL de imagen">
+            <button id="btn-guardar-prod" class="btn-primary">Publicar Ahora</button>
+        </aside>
+
+        <aside class="sidebar" id="sidebar">
+            <nav>
+                <h3>Navegaci¨®n</h3>
+                <ul>
+                    <li><a href="#" class="filter-btn" data-filter="all">? Tienda</a></li>
+                    <li><a href="#" class="filter-btn" data-filter="Combos">? Combos</a></li>
+                    <li><a href="#" class="filter-btn" data-filter="Promociones">? Promociones</a></li>
+                </ul>
+                <h3>Plataformas</h3>
+                <ul>
+                    <li><a href="#" class="filter-btn" data-filter="Netflix">Netflix</a></li>
+                    <li><a href="#" class="filter-btn" data-filter="Disney+">Disney+</a></li>
+                    <li><a href="#" class="filter-btn" data-filter="Amazon Prime">Amazon Prime</a></li>
+                    <li><a href="#" class="filter-btn" data-filter="HBO Max">HBO Max</a></li>
+                    <li><a href="#" class="filter-btn" data-filter="Spotify">Spotify Premium</a></li>
+                    <li><a href="#" class="filter-btn" data-filter="Paramount">Paramount</a></li>
+                    <li><a href="#" class="filter-btn" data-filter="Vix">Vix</a></li>
+                    <li><a href="#" class="filter-btn" data-filter="Crunchyroll">Crunchyroll</a></li>
+                    <li><a href="#" class="filter-btn" data-filter="Plex">Plex</a></li>
+                    <li><a href="#" class="filter-btn" data-filter="Win Play">Win Play</a></li>
+                    <li><a href="#" class="filter-btn" data-filter="YouTube Premium">YouTube Premium</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <div class="products-grid" id="products-grid"></div>
+        </main>
+    </div>
+
+    <div class="modal" id="register-modal">
+        <div class="modal-content">
+            <h3>Registro de Cliente</h3>
+            <input type="text" id="reg-nombre" placeholder="Nombre">
+            <input type="text" id="reg-apellido" placeholder="Apellido">
+            <input type="email" id="reg-email" placeholder="Correo">
+            <input type="password" id="reg-pass" placeholder="Contrase?a">
+            <div class="modal-buttons">
+                <button class="btn-secondary close-modals">Cerrar</button>
+                <button id="confirm-register" class="btn-primary">Crear Cuenta</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="login-modal">
+        <div class="modal-content">
+            <h3>Ingresar</h3>
+            <input type="email" id="log-email" placeholder="Correo">
+            <input type="password" id="log-pass" placeholder="Contrase?a">
+            <div class="modal-buttons">
+                <button class="btn-secondary close-modals">Cerrar</button>
+                <button id="confirm-login" class="btn-primary">Entrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="cart-modal">
+        <div class="modal-content">
+            <h3>Carrito de Compras</h3>
+            <div id="cart-items" style="max-height: 200px; overflow-y: auto; margin: 10px 0;"></div>
+            <h4 id="cart-total">Total: $0</h4>
+            <div class="modal-buttons">
+                <button id="checkout-wa" class="btn-secondary">Pedir por WhatsApp</button>
+                <button id="checkout-nequi" class="btn-primary">Pagar con Nequi</button>
+                <button class="btn-secondary close-modals" style="margin-top: 10px;">Seguir Comprando</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="nequi-modal">
+        <div class="modal-content">
+            <h3>Pago Nequi</h3>
+            <p>Env¨ªa el pago al n¨²mero:</p>
+            <h2 style="margin: 10px 0;">300 000 0000</h2>
+            <p style="font-size: 0.8rem; color: #555;">Una vez enviado, confirma aqu¨ª para procesar tu pedido.</p>
+            <div class="modal-buttons">
+                <button class="btn-secondary close-modals">Cancelar</button>
+                <button id="confirm-nequi-telegram" class="btn-primary">Ya pagu¨¦ (Notificar)</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
