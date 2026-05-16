@@ -1,11 +1,11 @@
 // ==========================================
-// IMPORTACIONES FIREBASE (SDK v12.13.0)
+// IMPORTACIONES FIREBASE (SDK v10.8.0 ESTABLE)
 // ==========================================
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { 
     getFirestore, collection, addDoc, doc, updateDoc, setDoc,
     onSnapshot, query, orderBy, serverTimestamp 
-} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // ==========================================
 // CONFIGURACIÓN DE FIREBASE
@@ -20,7 +20,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app, "foro"); 
+const db = getFirestore(app); // SE QUITA EL "foro" PARA QUE USE LA BASE POR DEFECTO
 
 const inventoryRef = collection(db, "inventory");
 const salesRef = collection(db, "sales");
@@ -31,14 +31,13 @@ let currentCategories = ["Netflix", "Disney+", "Amazon Prime", "Spotify", "HBO M
 let comboSelectedApps = []; 
 
 // ==========================================
-// INICIALIZACIÓN Y EVENTOS
+// EVENTOS PRINCIPALES
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     
     const themeBtn = document.getElementById('themeToggle');
     if(localStorage.getItem('uraniumTheme') === 'dark') {
-        document.body.classList.add('dark-mode');
-        themeBtn.innerText = "☀️";
+        document.body.classList.add('dark-mode'); themeBtn.innerText = "☀️";
     }
     themeBtn.addEventListener('click', () => {
         document.body.classList.toggle('dark-mode');
@@ -70,7 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', (e) => closeModal(e.currentTarget.getAttribute('data-close')));
     });
 
-    document.getElementById('btnAddCategory').addEventListener('click', handleAddCategory);
     document.getElementById('inventoryFilter').addEventListener('change', renderInventoryTable);
 
     document.getElementById('submitProductBtn').addEventListener('click', handleAddProduct);
@@ -96,6 +94,10 @@ function closeModal(modalId) {
             document.getElementById('prodCost').value = '';
             document.getElementById('prodStock').value = '';
         }
+        if(modalId === 'saleModal') {
+            document.getElementById('saleQuantity').value = '1';
+            document.getElementById('saleError').innerText = '';
+        }
     }, 300);
 }
 const formatMoney = (amount) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
@@ -107,9 +109,6 @@ function listenToCategories() {
     try {
         onSnapshot(settingsRef, (docSnap) => {
             if (docSnap.exists()) currentCategories = docSnap.data().list || currentCategories;
-            updateCategorySelects();
-        }, (err) => {
-            console.log("Firebase no dejó leer settings. Usando base local.", err);
             updateCategorySelects();
         });
     } catch(e) { updateCategorySelects(); }
@@ -128,23 +127,6 @@ function updateCategorySelects() {
     });
 }
 
-async function handleAddCategory() {
-    const newCat = prompt("Nueva categoría:");
-    if (!newCat || newCat.trim() === "") return;
-    
-    const catName = newCat.trim();
-    if(!currentCategories.includes(catName)) {
-        currentCategories.push(catName);
-        updateCategorySelects();
-        document.getElementById('prodCategory').value = catName;
-        try {
-            await setDoc(settingsRef, { list: currentCategories }, { merge: true });
-        } catch(e) {
-            alert("⚠️ La categoría se guardó localmente. (Error de permisos en Firebase)");
-        }
-    }
-}
-
 // ==========================================
 // INVENTARIO
 // ==========================================
@@ -156,17 +138,16 @@ async function handleAddProduct() {
     const stock = parseInt(document.getElementById('prodStock').value) || 0;
     const btn = document.getElementById('submitProductBtn');
 
-    if (!name || price <= 0) {
-        alert("El nombre y el precio de venta son obligatorios."); return;
-    }
+    if (!name || price <= 0) { alert("El nombre y el precio de venta son obligatorios."); return; }
 
     btn.innerText = "GUARDANDO..."; btn.disabled = true;
 
     try {
         await addDoc(inventoryRef, { category, name, cost, price, stock, isCombo: false, createdAt: serverTimestamp() });
+        alert("✅ Producto guardado en la Nube de Firebase."); // ALERTA DE ÉXITO
         closeModal('productModal');
     } catch (error) {
-        alert("⚠️ No se pudo guardar. Revisa las reglas de seguridad en Firebase.");
+        alert("❌ Fallo en Firebase: " + error.message); // ALERTA DE ERROR
     } finally {
         btn.innerText = "GUARDAR PRODUCTO"; btn.disabled = false;
     }
@@ -179,7 +160,7 @@ function listenToInventory() {
         snapshot.forEach((docSnap) => currentProducts.push({ id: docSnap.id, ...docSnap.data() }));
         renderInventoryTable();
         if(document.getElementById('comboModal').classList.contains('active')) renderComboSourceApps();
-    }, (err) => alert("No tienes permiso para leer el inventario. Cambia las reglas de Firebase a 'true'."));
+    });
 }
 
 function renderInventoryTable() {
@@ -200,7 +181,6 @@ function renderInventoryTable() {
         const statusBadge = data.stock > 0 ? `<span class="badge-ok">DISPONIBLE</span>` : `<span class="badge-empty">AGOTADO</span>`;
         const catBadge = data.isCombo ? `<span class="text-warning">⚡ COMBO</span>` : (data.category || 'General');
 
-        // Render exacto de 6 columnas para evitar desajustes
         tbody.innerHTML += `
             <tr>
                 <td><strong>${data.name}</strong></td>
@@ -291,7 +271,7 @@ async function handleSaveCombo() {
     const btn = document.getElementById('submitComboBtn');
     const errorDiv = document.getElementById('comboError');
 
-    if(comboSelectedApps.length < 2) { errorDiv.innerText = "Selecciona al menos 2 apps."; return; }
+    if(comboSelectedApps.length < 2) { errorDiv.innerText = "Selecciona al menos 2 apps tocándolas."; return; }
     if(!name || finalPrice <= 0) { errorDiv.innerText = "Nombre y precio válidos requeridos."; return; }
 
     let baseCost = 0; comboSelectedApps.forEach(a => baseCost += (a.cost || 0));
@@ -304,11 +284,12 @@ async function handleSaveCombo() {
             name, category: "COMBOS", cost: baseCost, price: finalPrice,
             stock: minStock, isCombo: true, comboItems: comboSelectedApps.map(a => a.id), createdAt: serverTimestamp()
         });
+        alert("✅ Combo guardado en Firebase.");
         closeModal('comboModal');
     } catch (error) {
-        errorDiv.innerText = "Error en DB. Revisa permisos Firebase.";
+        alert("❌ Error de DB: " + error.message);
     } finally {
-        btn.innerText = "GUARDAR COMBO"; btn.disabled = false;
+        btn.innerText = "GUARDAR COMBO EN INVENTARIO"; btn.disabled = false;
     }
 }
 
@@ -321,7 +302,8 @@ function populateSalesDropdown() {
     
     currentProducts.forEach(prod => {
         if((prod.stock || 0) > 0) {
-            select.innerHTML += `<option value="${prod.id}">${prod.isCombo ? "⚡" : ""} ${prod.name} - Disp: ${prod.stock}</option>`;
+            const prefix = prod.isCombo ? "⚡" : "";
+            select.innerHTML += `<option value="${prod.id}">${prefix} ${prod.name} - Disp: ${prod.stock}</option>`;
         }
     });
 }
@@ -360,8 +342,13 @@ async function handleRegisterSale() {
                 if(subItem) await updateDoc(doc(db, "inventory", subItem.id), { stock: subItem.stock - qty });
             }
         }
+        alert("✅ Venta registrada y descontada del stock.");
         closeModal('saleModal');
-    } catch (e) { errorDiv.innerText = "Error en DB."; } finally { btn.innerText = "CONFIRMAR VENTA"; btn.disabled = false; }
+    } catch (error) { 
+        alert("❌ Fallo de venta: " + error.message); 
+    } finally { 
+        btn.innerText = "CONFIRMAR VENTA"; btn.disabled = false; 
+    }
 }
 
 function listenToSales() {
