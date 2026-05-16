@@ -3,7 +3,7 @@
 // ==========================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import { 
-    getFirestore, collection, addDoc, doc, updateDoc, getDoc, setDoc,
+    getFirestore, collection, addDoc, doc, updateDoc, setDoc,
     onSnapshot, query, orderBy, serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
@@ -27,7 +27,7 @@ const salesRef = collection(db, "sales");
 const settingsRef = doc(db, "settings", "categories");
 
 let currentProducts = []; 
-let currentCategories = ["Netflix", "Disney+", "Amazon Prime", "Spotify", "HBO Max", "Crunchyroll"]; // Base por defecto
+let currentCategories = ["Netflix", "Disney+", "Amazon Prime", "Spotify", "HBO Max", "Crunchyroll"]; 
 let comboSelectedApps = []; 
 
 // ==========================================
@@ -35,7 +35,6 @@ let comboSelectedApps = [];
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- TEMA OSCURO ---
     const themeBtn = document.getElementById('themeToggle');
     if(localStorage.getItem('uraniumTheme') === 'dark') {
         document.body.classList.add('dark-mode');
@@ -43,12 +42,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     themeBtn.addEventListener('click', () => {
         document.body.classList.toggle('dark-mode');
-        const isDark = document.body.classList.contains('dark-mode');
-        themeBtn.innerText = isDark ? "☀️" : "🌙";
-        localStorage.setItem('uraniumTheme', isDark ? 'dark' : 'light');
+        themeBtn.innerText = document.body.classList.contains('dark-mode') ? "☀️" : "🌙";
+        localStorage.setItem('uraniumTheme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
     });
 
-    // --- PESTAÑAS (TABS) ---
     const tabBtns = document.querySelectorAll('.tab-btn');
     const viewSections = document.querySelectorAll('.view-section');
 
@@ -61,44 +58,34 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- ABRIR MODALES ---
     document.getElementById('btnOpenProductModal').addEventListener('click', () => openModal('productModal'));
     document.getElementById('btnOpenComboModal').addEventListener('click', () => {
-        resetComboBuilder();
-        openModal('comboModal');
+        resetComboBuilder(); openModal('comboModal');
     });
     document.getElementById('btnOpenSaleModal').addEventListener('click', () => {
-        populateSalesDropdown();
-        document.getElementById('saleTotalText').innerText = "$0 COP";
-        openModal('saleModal');
+        populateSalesDropdown(); document.getElementById('saleTotalText').innerText = "$0 COP"; openModal('saleModal');
     });
 
-    // --- CERRAR MODALES ---
     document.querySelectorAll('[data-close]').forEach(btn => {
         btn.addEventListener('click', (e) => closeModal(e.currentTarget.getAttribute('data-close')));
     });
 
-    // --- CATEGORÍAS ---
     document.getElementById('btnAddCategory').addEventListener('click', handleAddCategory);
     document.getElementById('inventoryFilter').addEventListener('change', renderInventoryTable);
 
-    // --- BOTONES DE GUARDAR ---
     document.getElementById('submitProductBtn').addEventListener('click', handleAddProduct);
     document.getElementById('submitSaleBtn').addEventListener('click', handleRegisterSale);
     document.getElementById('submitComboBtn').addEventListener('click', handleSaveCombo);
     
-    // --- CALCULADORAS DINÁMICAS ---
     document.getElementById('saleQuantity').addEventListener('input', calculateSaleTotal);
     document.getElementById('saleProductSelect').addEventListener('change', calculateSaleTotal);
     document.getElementById('comboFinalPrice').addEventListener('input', calculateComboFinancials);
 
-    // --- INICIAR DATOS ---
     listenToCategories();
     listenToInventory();
     listenToSales();
 });
 
-// Utilidades
 function openModal(modalId) { document.getElementById(modalId).classList.add('active'); }
 function closeModal(modalId) {
     document.getElementById(modalId).classList.remove('active');
@@ -109,10 +96,6 @@ function closeModal(modalId) {
             document.getElementById('prodCost').value = '';
             document.getElementById('prodStock').value = '';
         }
-        if(modalId === 'saleModal') {
-            document.getElementById('saleQuantity').value = '1';
-            document.getElementById('saleError').innerText = '';
-        }
     }, 300);
 }
 const formatMoney = (amount) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
@@ -120,22 +103,16 @@ const formatMoney = (amount) => new Intl.NumberFormat('es-CO', { style: 'currenc
 // ==========================================
 // CATEGORÍAS
 // ==========================================
-async function listenToCategories() {
+function listenToCategories() {
     try {
         onSnapshot(settingsRef, (docSnap) => {
-            if (docSnap.exists()) {
-                currentCategories = docSnap.data().list || currentCategories;
-            } else {
-                setDoc(settingsRef, { list: currentCategories }).catch(()=>console.log("No se pudo crear settings, usando locales"));
-            }
+            if (docSnap.exists()) currentCategories = docSnap.data().list || currentCategories;
             updateCategorySelects();
-        }, (error) => {
-            console.warn("Reglas de Firestore bloquean Settings. Usando categorías locales.", error);
+        }, (err) => {
+            console.log("Firebase no dejó leer settings. Usando base local.", err);
             updateCategorySelects();
         });
-    } catch (e) {
-        updateCategorySelects();
-    }
+    } catch(e) { updateCategorySelects(); }
 }
 
 function updateCategorySelects() {
@@ -152,38 +129,35 @@ function updateCategorySelects() {
 }
 
 async function handleAddCategory() {
-    const newCat = prompt("Escribe el nombre de la nueva categoría:");
+    const newCat = prompt("Nueva categoría:");
     if (!newCat || newCat.trim() === "") return;
     
     const catName = newCat.trim();
     if(!currentCategories.includes(catName)) {
         currentCategories.push(catName);
-        updateCategorySelects(); // Actualiza UI inmediatamente
+        updateCategorySelects();
         document.getElementById('prodCategory').value = catName;
-        
         try {
             await setDoc(settingsRef, { list: currentCategories }, { merge: true });
-        } catch (e) {
-            console.error("No se guardó en Firebase por reglas, pero funcionará localmente.", e);
+        } catch(e) {
+            alert("⚠️ La categoría se guardó localmente. (Error de permisos en Firebase)");
         }
-    } else {
-        document.getElementById('prodCategory').value = catName;
     }
 }
 
 // ==========================================
-// FIREBASE: INVENTARIO
+// INVENTARIO
 // ==========================================
 async function handleAddProduct() {
-    const category = document.getElementById('prodCategory').value;
+    const category = document.getElementById('prodCategory').value || "General";
     const name = document.getElementById('prodName').value.trim();
-    const cost = parseFloat(document.getElementById('prodCost').value);
-    const price = parseFloat(document.getElementById('prodPrice').value);
-    const stock = parseInt(document.getElementById('prodStock').value);
+    const cost = parseFloat(document.getElementById('prodCost').value) || 0;
+    const price = parseFloat(document.getElementById('prodPrice').value) || 0;
+    const stock = parseInt(document.getElementById('prodStock').value) || 0;
     const btn = document.getElementById('submitProductBtn');
 
-    if (!category || !name || isNaN(cost) || isNaN(price) || isNaN(stock)) {
-        alert("Llena todos los campos."); return;
+    if (!name || price <= 0) {
+        alert("El nombre y el precio de venta son obligatorios."); return;
     }
 
     btn.innerText = "GUARDANDO..."; btn.disabled = true;
@@ -192,7 +166,7 @@ async function handleAddProduct() {
         await addDoc(inventoryRef, { category, name, cost, price, stock, isCombo: false, createdAt: serverTimestamp() });
         closeModal('productModal');
     } catch (error) {
-        alert("Error de DB. Revisa permisos.");
+        alert("⚠️ No se pudo guardar. Revisa las reglas de seguridad en Firebase.");
     } finally {
         btn.innerText = "GUARDAR PRODUCTO"; btn.disabled = false;
     }
@@ -202,15 +176,10 @@ function listenToInventory() {
     const q = query(inventoryRef, orderBy("createdAt", "desc"));
     onSnapshot(q, (snapshot) => {
         currentProducts = [];
-        snapshot.forEach((docSnap) => {
-            currentProducts.push({ id: docSnap.id, ...docSnap.data() });
-        });
+        snapshot.forEach((docSnap) => currentProducts.push({ id: docSnap.id, ...docSnap.data() }));
         renderInventoryTable();
-        
-        if(document.getElementById('comboModal').classList.contains('active')) {
-            renderComboSourceApps();
-        }
-    });
+        if(document.getElementById('comboModal').classList.contains('active')) renderComboSourceApps();
+    }, (err) => alert("No tienes permiso para leer el inventario. Cambia las reglas de Firebase a 'true'."));
 }
 
 function renderInventoryTable() {
@@ -227,17 +196,18 @@ function renderInventoryTable() {
     }
 
     filtered.forEach(data => {
-        totalStock += data.stock;
-        const statusBadge = data.stock > 0 ? `<span class="badge-ok">DISP</span>` : `<span class="badge-empty">AGOTADO</span>`;
-        const catBadge = data.isCombo ? `<span class="text-warning">⚡ COMBO</span>` : data.category;
+        totalStock += data.stock || 0;
+        const statusBadge = data.stock > 0 ? `<span class="badge-ok">DISPONIBLE</span>` : `<span class="badge-empty">AGOTADO</span>`;
+        const catBadge = data.isCombo ? `<span class="text-warning">⚡ COMBO</span>` : (data.category || 'General');
 
+        // Render exacto de 6 columnas para evitar desajustes
         tbody.innerHTML += `
             <tr>
                 <td><strong>${data.name}</strong></td>
                 <td style="font-size:0.8rem;">${catBadge}</td>
-                <td class="text-muted">${formatMoney(data.cost)}</td>
-                <td class="accent-text">${formatMoney(data.price)}</td>
-                <td><span class="badge-stock">${data.stock}</span></td>
+                <td class="text-muted">${formatMoney(data.cost || 0)}</td>
+                <td class="accent-text">${formatMoney(data.price || 0)}</td>
+                <td><span class="badge-stock">${data.stock || 0}</span></td>
                 <td>${statusBadge}</td>
             </tr>
         `;
@@ -246,38 +216,30 @@ function renderInventoryTable() {
 }
 
 // ==========================================
-// CREADOR DE COMBOS (Toque en Celular)
+// CREADOR DE COMBOS
 // ==========================================
 function resetComboBuilder() {
     comboSelectedApps = [];
     document.getElementById('comboName').value = '';
     document.getElementById('comboFinalPrice').value = '';
     
-    const slots = document.querySelectorAll('.combo-slot');
-    slots.forEach(slot => {
+    document.querySelectorAll('.combo-slot').forEach(slot => {
         slot.innerHTML = 'Toca una<br>App';
-        slot.classList.add('empty');
-        slot.removeAttribute('data-app-id');
+        slot.classList.add('empty'); slot.removeAttribute('data-app-id');
     });
-    
-    renderComboSourceApps();
-    calculateComboFinancials();
+    renderComboSourceApps(); calculateComboFinancials();
 }
 
 function renderComboSourceApps() {
     const grid = document.getElementById('appsSourceGrid');
     grid.innerHTML = '';
-    
     const available = currentProducts.filter(p => p.stock > 0 && !p.isCombo);
     
     available.forEach(app => {
         const div = document.createElement('div');
         div.className = 'app-icon';
-        // En lugar de arrastrar, ahora damos CLIC/TOQUE
         div.onclick = () => addAppToComboSlot(app.id);
-        
-        let shortName = app.name.substring(0, 8);
-        div.innerHTML = `<strong>${shortName}</strong><br><span style="font-size:9px">${formatMoney(app.price)}</span>`;
+        div.innerHTML = `<strong>${app.name.substring(0, 8)}</strong><br><span style="font-size:9px">${formatMoney(app.price)}</span>`;
         grid.appendChild(div);
     });
 }
@@ -286,28 +248,20 @@ function addAppToComboSlot(appId) {
     const appData = currentProducts.find(p => p.id === appId);
     if(!appData) return;
 
-    // Buscar la primera ranura vacía
     const emptySlot = document.querySelector('.combo-slot.empty');
-    if(!emptySlot) {
-        alert("Las 5 ranuras ya están llenas. Quita una para agregar más.");
-        return;
-    }
+    if(!emptySlot) { alert("Ranuras llenas."); return; }
 
-    // Llenar la ranura
     emptySlot.classList.remove('empty');
     emptySlot.dataset.appId = appId;
     emptySlot.innerHTML = `
-        <div class="app-icon combo-item" style="width:100%; height:100%; border:none;">
+        <div class="app-icon" style="width:100%; height:100%; border-color:var(--primary);">
             <strong>${appData.name.substring(0,6)}</strong>
         </div>
         <div class="remove-app" onclick="removeAppFromSlot(this)">x</div>
     `;
-    
-    comboSelectedApps.push(appData);
-    calculateComboFinancials();
+    comboSelectedApps.push(appData); calculateComboFinancials();
 }
 
-// Quitar app de la ranura
 window.removeAppFromSlot = function(element) {
     const slot = element.parentElement;
     const appId = slot.dataset.appId;
@@ -315,174 +269,122 @@ window.removeAppFromSlot = function(element) {
     const index = comboSelectedApps.findIndex(a => a.id === appId);
     if(index > -1) comboSelectedApps.splice(index, 1);
     
-    slot.innerHTML = 'Toca una<br>App';
-    slot.classList.add('empty');
-    slot.removeAttribute('data-app-id');
-    
+    slot.innerHTML = 'Toca una<br>App'; slot.classList.add('empty'); slot.removeAttribute('data-app-id');
     calculateComboFinancials();
 };
 
 function calculateComboFinancials() {
-    let totalCost = 0;
-    let regularPrice = 0;
-    
-    comboSelectedApps.forEach(app => {
-        totalCost += app.cost;
-        regularPrice += app.price;
-    });
+    let totalCost = 0; let regularPrice = 0;
+    comboSelectedApps.forEach(app => { totalCost += (app.cost || 0); regularPrice += (app.price || 0); });
 
     document.getElementById('comboTotalCost').innerText = formatMoney(totalCost);
     document.getElementById('comboRegularPrice').innerText = formatMoney(regularPrice);
 
-    const inputPriceStr = document.getElementById('comboFinalPrice').value;
-    const finalPrice = inputPriceStr ? parseFloat(inputPriceStr) : 0;
-
-    const discount = regularPrice - finalPrice;
-    const profit = finalPrice - totalCost;
-
-    document.getElementById('comboDiscount').innerText = finalPrice > 0 ? formatMoney(discount) : "$0";
-    document.getElementById('comboProfit').innerText = finalPrice > 0 ? formatMoney(profit) : "$0";
+    const finalPrice = parseFloat(document.getElementById('comboFinalPrice').value) || 0;
+    document.getElementById('comboDiscount').innerText = finalPrice > 0 ? formatMoney(regularPrice - finalPrice) : "$0";
+    document.getElementById('comboProfit').innerText = finalPrice > 0 ? formatMoney(finalPrice - totalCost) : "$0";
 }
 
 async function handleSaveCombo() {
     const name = document.getElementById('comboName').value.trim();
-    const finalPrice = parseFloat(document.getElementById('comboFinalPrice').value);
-    const errorDiv = document.getElementById('comboError');
+    const finalPrice = parseFloat(document.getElementById('comboFinalPrice').value) || 0;
     const btn = document.getElementById('submitComboBtn');
+    const errorDiv = document.getElementById('comboError');
 
-    if(comboSelectedApps.length < 2) {
-        errorDiv.innerText = "Selecciona al menos 2 aplicaciones tocándolas."; return;
-    }
-    if(!name || isNaN(finalPrice) || finalPrice <= 0) {
-        errorDiv.innerText = "Ingresa un nombre y precio de venta válido."; return;
-    }
+    if(comboSelectedApps.length < 2) { errorDiv.innerText = "Selecciona al menos 2 apps."; return; }
+    if(!name || finalPrice <= 0) { errorDiv.innerText = "Nombre y precio válidos requeridos."; return; }
 
-    let baseCost = 0;
-    comboSelectedApps.forEach(a => baseCost += a.cost);
-    const minStock = Math.min(...comboSelectedApps.map(a => a.stock));
+    let baseCost = 0; comboSelectedApps.forEach(a => baseCost += (a.cost || 0));
+    const minStock = Math.min(...comboSelectedApps.map(a => a.stock || 0));
 
     btn.innerText = "CREANDO..."; btn.disabled = true; errorDiv.innerText = "";
 
     try {
-        const comboItemIds = comboSelectedApps.map(a => a.id);
-        
         await addDoc(inventoryRef, {
-            name: name, category: "COMBOS", cost: baseCost, price: finalPrice,
-            stock: minStock, isCombo: true, comboItems: comboItemIds, createdAt: serverTimestamp()
+            name, category: "COMBOS", cost: baseCost, price: finalPrice,
+            stock: minStock, isCombo: true, comboItems: comboSelectedApps.map(a => a.id), createdAt: serverTimestamp()
         });
-        
         closeModal('comboModal');
     } catch (error) {
-        errorDiv.innerText = "Error al crear combo.";
+        errorDiv.innerText = "Error en DB. Revisa permisos Firebase.";
     } finally {
-        btn.innerText = "GUARDAR COMBO EN INVENTARIO"; btn.disabled = false;
+        btn.innerText = "GUARDAR COMBO"; btn.disabled = false;
     }
 }
 
 // ==========================================
-// FIREBASE: VENTAS
+// VENTAS
 // ==========================================
 function populateSalesDropdown() {
     const select = document.getElementById('saleProductSelect');
-    select.innerHTML = '<option value="">-- Elige un producto del stock --</option>';
+    select.innerHTML = '<option value="">-- Elige un producto --</option>';
     
     currentProducts.forEach(prod => {
-        if(prod.stock > 0) {
-            const prefix = prod.isCombo ? "⚡" : "";
-            select.innerHTML += `<option value="${prod.id}">${prefix} ${prod.name} - Disp: ${prod.stock}</option>`;
+        if((prod.stock || 0) > 0) {
+            select.innerHTML += `<option value="${prod.id}">${prod.isCombo ? "⚡" : ""} ${prod.name} - Disp: ${prod.stock}</option>`;
         }
     });
 }
 
 function calculateSaleTotal() {
-    const select = document.getElementById('saleProductSelect');
-    const quantity = parseInt(document.getElementById('saleQuantity').value) || 0;
-    const totalText = document.getElementById('saleTotalText');
-    
-    if (!select.value) { totalText.innerText = "$0 COP"; return; }
-
-    const prod = currentProducts.find(p => p.id === select.value);
-    if (prod) totalText.innerText = formatMoney(prod.price * quantity);
+    const prod = currentProducts.find(p => p.id === document.getElementById('saleProductSelect').value);
+    const qty = parseInt(document.getElementById('saleQuantity').value) || 0;
+    document.getElementById('saleTotalText').innerText = prod ? formatMoney((prod.price || 0) * qty) : "$0 COP";
 }
 
 async function handleRegisterSale() {
     const prodId = document.getElementById('saleProductSelect').value;
-    const quantity = parseInt(document.getElementById('saleQuantity').value);
+    const qty = parseInt(document.getElementById('saleQuantity').value) || 0;
     const errorDiv = document.getElementById('saleError');
     const btn = document.getElementById('submitSaleBtn');
 
-    if (!prodId || isNaN(quantity) || quantity <= 0) {
-        errorDiv.innerText = "Verifica el producto y la cantidad."; return;
-    }
-
+    if (!prodId || qty <= 0) { errorDiv.innerText = "Datos inválidos."; return; }
     const product = currentProducts.find(p => p.id === prodId);
-    if (quantity > product.stock) {
-        errorDiv.innerText = `Solo hay ${product.stock} unidades.`; return;
-    }
+    if (qty > (product.stock || 0)) { errorDiv.innerText = "Stock insuficiente."; return; }
 
-    btn.innerText = "PROCESANDO..."; btn.disabled = true; errorDiv.innerText = "";
+    btn.innerText = "PROCESANDO..."; btn.disabled = true;
 
     try {
-        const totalSale = product.price * quantity;
-        const totalCost = product.cost * quantity;
-        const profit = totalSale - totalCost;
+        const totalSale = (product.price || 0) * qty;
+        const totalCost = (product.cost || 0) * qty;
 
         await addDoc(salesRef, {
-            productId: product.id, productName: product.name,
-            quantity: quantity, total: totalSale, profit: profit,
-            isCombo: product.isCombo || false, date: serverTimestamp()
+            productId: product.id, productName: product.name, quantity: qty,
+            total: totalSale, profit: (totalSale - totalCost), isCombo: product.isCombo || false, date: serverTimestamp()
         });
 
-        await updateDoc(doc(db, "inventory", product.id), { stock: product.stock - quantity });
-        
+        await updateDoc(doc(db, "inventory", product.id), { stock: product.stock - qty });
         if(product.isCombo && product.comboItems) {
             for(const itemId of product.comboItems) {
                 const subItem = currentProducts.find(p => p.id === itemId);
-                if(subItem) {
-                    await updateDoc(doc(db, "inventory", subItem.id), { stock: subItem.stock - quantity });
-                }
+                if(subItem) await updateDoc(doc(db, "inventory", subItem.id), { stock: subItem.stock - qty });
             }
         }
-
         closeModal('saleModal');
-    } catch (error) {
-        errorDiv.innerText = "Error en base de datos.";
-    } finally {
-        btn.innerText = "CONFIRMAR VENTA"; btn.disabled = false;
-    }
+    } catch (e) { errorDiv.innerText = "Error en DB."; } finally { btn.innerText = "CONFIRMAR VENTA"; btn.disabled = false; }
 }
 
 function listenToSales() {
-    const q = query(salesRef, orderBy("date", "desc"));
-    onSnapshot(q, (snapshot) => {
+    onSnapshot(query(salesRef, orderBy("date", "desc")), (snapshot) => {
         const tbody = document.getElementById('salesBody');
-        tbody.innerHTML = ''; let revenue = 0; let salesCount = 0; let totalProfit = 0;
+        tbody.innerHTML = ''; let revenue = 0, salesCount = 0, totalProfit = 0;
 
         if (snapshot.empty) {
             tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Sin ventas.</td></tr>';
-            document.getElementById('totalRevenue').innerText = "$0";
-            document.getElementById('totalProfit').innerText = "$0";
-            document.getElementById('totalSalesCount').innerText = "0"; return;
+            return;
         }
 
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
-            revenue += data.total; salesCount += data.quantity;
-            totalProfit += (data.profit || 0);
-            
-            let dateStr = 'Reciente';
-            if(data.date) {
-                const d = data.date.toDate();
-                dateStr = `${d.getDate()}/${d.getMonth()+1} ${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`;
-            }
+            revenue += data.total || 0; salesCount += data.quantity || 0; totalProfit += data.profit || 0;
+            const dateStr = data.date ? `${data.date.toDate().toLocaleDateString()} ${data.date.toDate().getHours()}:${data.date.toDate().getMinutes().toString().padStart(2, '0')}` : 'Reciente';
 
-            const prefix = data.isCombo ? "⚡" : "";
             tbody.innerHTML += `
                 <tr>
                     <td class="text-muted" style="font-size:0.85rem;">${dateStr}</td>
-                    <td><strong>${prefix} ${data.productName}</strong></td>
+                    <td><strong>${data.isCombo ? "⚡" : ""} ${data.productName}</strong></td>
                     <td><span class="badge-stock">${data.quantity}</span></td>
-                    <td class="accent-text"><strong>${formatMoney(data.total)}</strong></td>
+                    <td class="accent-text"><strong>${formatMoney(data.total || 0)}</strong></td>
                 </tr>
             `;
         });
