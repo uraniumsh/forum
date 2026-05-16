@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uranium | Control de Inventario y Ventas</title>
+    <title>Uranium | ERP & Ventas</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
@@ -12,42 +12,43 @@
 </head>
 <body>
 
-    <header class="navbar">
-        <div class="logo">URANIUM</div>
+    <header class="navbar neo-section">
+        <div class="logo">URANIUM<span>ERP</span></div>
         <div class="user-controls">
-            <button id="btnOpenProductModal" class="accent-outline-btn">NUEVO PRODUCTO</button>
-            <button id="btnOpenSaleModal" class="accent-btn">REGISTRAR VENTA</button>
+            <button id="themeToggle" class="neo-btn-outline">🌙 MODO OSCURO</button>
+            <button id="btnOpenProductModal" class="neo-btn-outline">NUEVO PRODUCTO</button>
+            <button id="btnOpenSaleModal" class="neo-btn">REGISTRAR VENTA</button>
         </div>
     </header>
 
     <main class="container">
         
-        <section class="metrics-grid">
-            <div class="metric-card">
+        <section class="metrics-grid neo-section">
+            <div class="neo-card metric-card">
                 <h3>INGRESOS TOTALES</h3>
                 <div class="metric-value accent-text" id="totalRevenue">$0</div>
             </div>
-            <div class="metric-card">
+            <div class="neo-card metric-card">
                 <h3>VENTAS REALIZADAS</h3>
                 <div class="metric-value" id="totalSalesCount">0</div>
             </div>
-            <div class="metric-card">
+            <div class="neo-card metric-card">
                 <h3>PRODUCTOS EN STOCK</h3>
                 <div class="metric-value" id="totalStockCount">0</div>
             </div>
         </section>
 
         <div class="tables-layout">
-            <section class="table-section">
+            <section class="neo-section table-wrapper">
                 <div class="section-header">
                     <h2>INVENTARIO ACTUAL</h2>
                 </div>
-                <div class="table-container">
+                <div class="neo-card table-container">
                     <table id="inventoryTable">
                         <thead>
                             <tr>
                                 <th>PRODUCTO</th>
-                                <th>PRECIO VENTA</th>
+                                <th>PRECIO</th>
                                 <th>STOCK</th>
                                 <th>ESTADO</th>
                             </tr>
@@ -59,18 +60,18 @@
                 </div>
             </section>
 
-            <section class="table-section">
+            <section class="neo-section table-wrapper">
                 <div class="section-header">
                     <h2>ÚLTIMAS VENTAS</h2>
                 </div>
-                <div class="table-container">
+                <div class="neo-card table-container">
                     <table id="salesTable">
                         <thead>
                             <tr>
                                 <th>FECHA</th>
                                 <th>PRODUCTO</th>
                                 <th>CANT.</th>
-                                <th>TOTAL INGRESADO</th>
+                                <th>INGRESO</th>
                             </tr>
                         </thead>
                         <tbody id="salesBody">
@@ -82,50 +83,52 @@
         </div>
     </main>
 
-    <div id="productModal" class="modal hidden">
-        <div class="modal-content square-modal">
+    <div id="productModal" class="modal">
+        <div class="modal-content neo-card">
             <button class="close-btn" data-close="productModal">&times;</button>
-            <h2 class="accent-text title-font">AGREGAR AL INVENTARIO</h2>
+            <h2 class="title-font">NUEVO PRODUCTO</h2>
+            <hr class="neo-divider">
             
-            <div class="form-group mt-20">
+            <div class="form-group">
                 <label>Nombre del Producto:</label>
-                <input type="text" id="prodName" placeholder="Ej. Perfil Netflix, Tenis Nike, etc.">
+                <input type="text" id="prodName" placeholder="Ej. Perfil Netflix">
             </div>
             <div class="form-group">
                 <label>Precio de Venta (COP):</label>
                 <input type="number" id="prodPrice" placeholder="Ej. 15000">
             </div>
             <div class="form-group">
-                <label>Stock Inicial (Cantidad):</label>
+                <label>Stock Inicial:</label>
                 <input type="number" id="prodStock" placeholder="Ej. 10">
             </div>
             
-            <button id="submitProductBtn" class="accent-btn w-100 mt-20">GUARDAR PRODUCTO</button>
+            <button id="submitProductBtn" class="neo-btn w-100 mt-20">GUARDAR EN INVENTARIO</button>
         </div>
     </div>
 
-    <div id="saleModal" class="modal hidden">
-        <div class="modal-content square-modal">
+    <div id="saleModal" class="modal">
+        <div class="modal-content neo-card">
             <button class="close-btn" data-close="saleModal">&times;</button>
-            <h2 class="accent-text title-font">REGISTRAR NUEVA VENTA</h2>
+            <h2 class="title-font">NUEVA VENTA</h2>
+            <hr class="neo-divider">
             
-            <div class="form-group mt-20">
+            <div class="form-group">
                 <label>Seleccionar Producto:</label>
                 <select id="saleProductSelect">
                     <option value="">-- Elige un producto --</option>
-                    </select>
+                </select>
             </div>
             <div class="form-group">
                 <label>Cantidad Vendida:</label>
                 <input type="number" id="saleQuantity" value="1" min="1">
             </div>
             
-            <div class="calculator-box">
+            <div class="calculator-box neo-card-inset">
                 <p>TOTAL A COBRAR:</p>
                 <h2 id="saleTotalText" class="accent-text">$0 COP</h2>
             </div>
             
-            <button id="submitSaleBtn" class="accent-btn w-100 mt-20">CONFIRMAR VENTA</button>
+            <button id="submitSaleBtn" class="neo-btn w-100 mt-20">CONFIRMAR VENTA</button>
             <div id="saleError" class="error-text text-center mt-10"></div>
         </div>
     </div>
