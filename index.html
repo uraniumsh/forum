@@ -1,136 +1,202 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uranium Store</title>
-    <link rel="stylesheet" href="styles.css">
-    
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <title>Foro Premium | Uranium</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="module" src="app.js" defer></script>
 </head>
 <body>
+    <div id="banScreen" class="ban-screen hidden">
+        <div class="ban-content">
+            <h1>🚫</h1>
+            <h2 id="banMessage">Acceso suspendido.</h2>
+        </div>
+    </div>
 
-    <header>
-        <div class="menu-toggle" id="menu-toggle">?</div>
-        <div class="logo">URANIUM</div>
-        <div class="header-actions">
-            <span id="user-greeting" style="display:none; font-size: 0.85rem; color: #777;"></span>
-            <button id="btn-show-login">Ingresar</button>
-            <button id="btn-show-register">Registrarse</button>
-            <button id="logout-btn" style="display:none;">Salir</button>
-            <div class="cart-icon" id="cart-icon">? <span id="cart-count">0</span></div>
+    <header class="navbar">
+        <div class="logo" onclick="showView('feedView')">URANIUM<span>FORO</span></div>
+        <div class="user-controls">
+            <button id="adminBtn" class="accent-outline-btn hidden" onclick="showView('adminView')">Panel Admin</button>
+            <div class="emerald-balance" onclick="openModal('paymentModal')">
+                💎 <span id="esmeraldasCount">0</span>
+            </div>
+            <button id="authBtn" class="accent-btn" onclick="openModal('loginModal')">Ingresar</button>
+            <button id="logoutBtn" class="accent-outline-btn hidden">Salir</button>
         </div>
     </header>
 
-    <div class="container">
-        <aside class="admin-panel" id="admin-panel" style="display: none;">
-            <h3>Panel de Control</h3>
-            <input type="text" id="prod-nombre" placeholder="Nombre del producto">
-            <select id="prod-categoria">
-                <option value="Netflix">Netflix</option>
-                <option value="Disney+">Disney+</option>
-                <option value="Amazon Prime">Amazon Prime</option>
-                <option value="HBO Max">HBO Max</option>
-                <option value="Spotify">Spotify Premium</option>
-                <option value="Paramount">Paramount</option>
-                <option value="Vix">Vix</option>
-                <option value="Crunchyroll">Crunchyroll</option>
-                <option value="Plex">Plex</option>
-                <option value="Win Play">Win Play</option>
-                <option value="YouTube Premium">YouTube Premium</option>
-                <option value="Combos">Combos</option>
-                <option value="Promociones">Promociones</option>
-            </select>
-            <input type="number" id="prod-precio" placeholder="Precio (ej: 18000)">
-            <input type="text" id="prod-img" placeholder="URL de imagen">
-            <button id="btn-guardar-prod" class="btn-primary">Publicar Ahora</button>
-        </aside>
-
-        <aside class="sidebar" id="sidebar">
-            <nav>
-                <h3>Navegaci��n</h3>
-                <ul>
-                    <li><a href="#" class="filter-btn" data-filter="all">? Tienda</a></li>
-                    <li><a href="#" class="filter-btn" data-filter="Combos">? Combos</a></li>
-                    <li><a href="#" class="filter-btn" data-filter="Promociones">? Promociones</a></li>
-                </ul>
-                <h3>Plataformas</h3>
-                <ul>
-                    <li><a href="#" class="filter-btn" data-filter="Netflix">Netflix</a></li>
-                    <li><a href="#" class="filter-btn" data-filter="Disney+">Disney+</a></li>
-                    <li><a href="#" class="filter-btn" data-filter="Amazon Prime">Amazon Prime</a></li>
-                    <li><a href="#" class="filter-btn" data-filter="HBO Max">HBO Max</a></li>
-                    <li><a href="#" class="filter-btn" data-filter="Spotify">Spotify Premium</a></li>
-                    <li><a href="#" class="filter-btn" data-filter="Paramount">Paramount</a></li>
-                    <li><a href="#" class="filter-btn" data-filter="Vix">Vix</a></li>
-                    <li><a href="#" class="filter-btn" data-filter="Crunchyroll">Crunchyroll</a></li>
-                    <li><a href="#" class="filter-btn" data-filter="Plex">Plex</a></li>
-                    <li><a href="#" class="filter-btn" data-filter="Win Play">Win Play</a></li>
-                    <li><a href="#" class="filter-btn" data-filter="YouTube Premium">YouTube Premium</a></li>
-                </ul>
-            </nav>
-        </aside>
-
-        <main class="content">
-            <div class="products-grid" id="products-grid"></div>
-        </main>
-    </div>
-
-    <div class="modal" id="register-modal">
-        <div class="modal-content">
-            <h3>Registro de Cliente</h3>
-            <input type="text" id="reg-nombre" placeholder="Nombre">
-            <input type="text" id="reg-apellido" placeholder="Apellido">
-            <input type="email" id="reg-email" placeholder="Correo">
-            <input type="password" id="reg-pass" placeholder="Contrase?a">
-            <div class="modal-buttons">
-                <button class="btn-secondary close-modals">Cerrar</button>
-                <button id="confirm-register" class="btn-primary">Crear Cuenta</button>
+    <main id="mainContent" class="container">
+        
+        <section id="feedView" class="view-section active">
+            <div class="board-header">
+                <h2>Tablón Principal</h2>
+                <button id="newPostBtn" class="accent-btn hidden" onclick="openModal('postModal')">Crear Debate</button>
             </div>
+            
+            <div id="feedContainer" class="feed-container">
+                <div class="text-center text-muted">Cargando debates...</div>
+            </div>
+        </section>
+
+        <section id="adminView" class="view-section hidden">
+            <div class="admin-header">
+                <h2 class="accent-text">Panel de Administración Avanzado</h2>
+                <button id="killSwitchBtn" class="danger-btn">Activar Modo Mantenimiento</button>
+            </div>
+            
+            <div class="admin-grid">
+                <div class="admin-card">
+                    <h3>Sanciones de Usuario</h3>
+                    <div class="form-group">
+                        <input type="text" id="targetUserId" placeholder="UID del Usuario">
+                    </div>
+                    <div class="form-group">
+                        <select id="sanctionType">
+                            <option value="none">Levantar Sanción</option>
+                            <option value="partialBan">Baneo Parcial (Solo lectura)</option>
+                            <option value="totalBan">Baneo Total (Pantalla negra)</option>
+                            <option value="isBlacklisted">Shadowban (Blacklist)</option>
+                        </select>
+                    </div>
+                    <button id="applySanctionBtn" class="accent-btn w-100">Aplicar Sanción</button>
+                </div>
+
+                <div class="admin-card" id="superAdminCard">
+                    <h3>Gestión de Administradores</h3>
+                    <div class="form-group">
+                        <input type="text" id="newAdminId" placeholder="UID del Usuario">
+                    </div>
+                    <div class="btn-group">
+                        <button class="accent-btn" onclick="manageRole('admin')">Hacer Admin</button>
+                        <button class="accent-outline-btn" onclick="manageRole('user')">Revocar Admin</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="loginModal" class="modal hidden">
+        <div class="modal-content square-modal">
+            <button class="close-btn" onclick="closeModal('loginModal')">&times;</button>
+            <h2 class="accent-text text-center">Acceso al Sistema</h2>
+            <div class="form-group">
+                <label>Correo Electrónico:</label>
+                <input type="email" id="loginEmail" placeholder="juanrivera@urm.co">
+            </div>
+            <div class="form-group">
+                <label>Contraseña:</label>
+                <input type="password" id="loginPass" placeholder="••••••••">
+            </div>
+            <button id="submitLoginBtn" class="accent-btn w-100">Iniciar Sesión</button>
+            <div id="loginError" class="text-center mt-20" style="color: var(--danger); font-size: 0.9rem;"></div>
         </div>
     </div>
 
-    <div class="modal" id="login-modal">
-        <div class="modal-content">
-            <h3>Ingresar</h3>
-            <input type="email" id="log-email" placeholder="Correo">
-            <input type="password" id="log-pass" placeholder="Contrase?a">
-            <div class="modal-buttons">
-                <button class="btn-secondary close-modals">Cerrar</button>
-                <button id="confirm-login" class="btn-primary">Entrar</button>
+    <div id="postModal" class="modal hidden">
+        <div class="modal-content square-modal">
+            <button class="close-btn" onclick="closeModal('postModal')">&times;</button>
+            <h2 class="accent-text">Nuevo Debate</h2>
+            <div class="form-group mt-20">
+                <label>Título del Debate:</label>
+                <input type="text" id="postTitle" placeholder="Escribe un título corto y claro">
             </div>
+            <div class="form-group">
+                <label>Contenido:</label>
+                <textarea id="postContent" rows="6" placeholder="Desarrolla tu idea aquí..."></textarea>
+            </div>
+            <button id="submitPostBtn" class="accent-btn w-100">Publicar Debate</button>
         </div>
     </div>
 
-    <div class="modal" id="cart-modal">
-        <div class="modal-content">
-            <h3>Carrito de Compras</h3>
-            <div id="cart-items" style="max-height: 200px; overflow-y: auto; margin: 10px 0;"></div>
-            <h4 id="cart-total">Total: $0</h4>
-            <div class="modal-buttons">
-                <button id="checkout-wa" class="btn-secondary">Pedir por WhatsApp</button>
-                <button id="checkout-nequi" class="btn-primary">Pagar con Nequi</button>
-                <button class="btn-secondary close-modals" style="margin-top: 10px;">Seguir Comprando</button>
+    <div id="paymentModal" class="modal hidden">
+        <div class="modal-content square-modal" style="max-width: 600px;">
+            <button class="close-btn" onclick="closeModal('paymentModal')">&times;</button>
+            
+            <div id="step1">
+                <h2 class="accent-text text-center">Selecciona un Paquete</h2>
+                <div class="gem-grid">
+                    <div class="gem-box" onclick="selectPackage('100', '5000')">
+                        <div class="gem-icon">💎</div>
+                        <div class="gem-amount">100</div>
+                        <div class="gem-price">$5.000 COP</div>
+                    </div>
+                    <div class="gem-box" onclick="selectPackage('300', '12000')">
+                        <div class="gem-icon">💎💎</div>
+                        <div class="gem-amount">300</div>
+                        <div class="gem-price">$12.000 COP</div>
+                    </div>
+                    <div class="gem-box" onclick="selectPackage('500', '20000')">
+                        <div class="gem-icon">💎💎💎</div>
+                        <div class="gem-amount">500</div>
+                        <div class="gem-price">$20.000 COP</div>
+                    </div>
+                    <div class="gem-box" onclick="selectPackage('1000', '35000')">
+                        <div class="gem-icon">🔮</div>
+                        <div class="gem-amount">1000</div>
+                        <div class="gem-price">$35.000 COP</div>
+                    </div>
+                    <div class="gem-box premium-box" onclick="selectPackage('1500', '50000')">
+                        <div class="gem-icon">👑</div>
+                        <div class="gem-amount">1500</div>
+                        <div class="gem-price">$50.000 COP</div>
+                    </div>
+                    <div class="gem-box premium-box" onclick="selectPackage('3000', '95000')">
+                        <div class="gem-icon">👑💎</div>
+                        <div class="gem-amount">3000</div>
+                        <div class="gem-price">$95.000 COP</div>
+                    </div>
+                    <div class="gem-box ultra-box" onclick="selectPackage('5000', '150000')">
+                        <div class="gem-icon">⚡</div>
+                        <div class="gem-amount">5000</div>
+                        <div class="gem-price">$150.000 COP</div>
+                    </div>
+                    <div class="gem-box ultra-box" onclick="selectPackage('10000', '280000')">
+                        <div class="gem-icon">🔥</div>
+                        <div class="gem-amount">10000</div>
+                        <div class="gem-price">$280.000 COP</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="step2" class="hidden">
+                <h2 class="accent-text">Datos de Facturación</h2>
+                <p class="text-muted mb-20">Paquete seleccionado: <strong id="selectedPackText"></strong></p>
+                
+                <div class="form-group">
+                    <label>Nombres Completos:</label>
+                    <input type="text" id="nombreCompleto" placeholder="Tu nombre legal">
+                </div>
+                <div class="form-group">
+                    <label>Número de Nequi originario:</label>
+                    <input type="number" id="nequiNum" placeholder="3000000000">
+                </div>
+                <div class="btn-group">
+                    <button class="accent-outline-btn w-100" onclick="goToStep(1)">Volver</button>
+                    <button class="accent-btn w-100" onclick="submitUserData()">Continuar</button>
+                </div>
+            </div>
+
+            <div id="step3" class="hidden">
+                <h2 class="accent-text text-center">Confirmación y Pago</h2>
+                <div class="instruction-box">
+                    <p>Transfiere exactamente <strong id="montoFinal" class="accent-text"></strong> a:</p>
+                    <h2 class="nequi-number text-center">NEQUI: 3137074357</h2>
+                </div>
+                <div class="upload-box">
+                    <p>Adjunta el comprobante cuadrado</p>
+                    <input type="file" id="comprobante" accept="image/*">
+                </div>
+                <button id="webhookBtn" class="accent-btn w-100" onclick="sendToWebhook()">Enviar Comprobante</button>
+            </div>
+
+            <div id="step4" class="hidden text-center">
+                <h2 class="accent-text">¡Comprobante Enviado!</h2>
+                <p class="mt-20">La recarga se aplicará a tu panel en cuanto el administrador valide la transacción.</p>
+                <button class="accent-outline-btn w-100 mt-20" onclick="closeModal('paymentModal')">Cerrar</button>
             </div>
         </div>
     </div>
-
-    <div class="modal" id="nequi-modal">
-        <div class="modal-content">
-            <h3>Pago Nequi</h3>
-            <p>Env��a el pago al n��mero:</p>
-            <h2 style="margin: 10px 0;">300 000 0000</h2>
-            <p style="font-size: 0.8rem; color: #555;">Una vez enviado, confirma aqu�� para procesar tu pedido.</p>
-            <div class="modal-buttons">
-                <button class="btn-secondary close-modals">Cancelar</button>
-                <button id="confirm-nequi-telegram" class="btn-primary">Ya pagu�� (Notificar)</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="script.js"></script>
 </body>
 </html>
