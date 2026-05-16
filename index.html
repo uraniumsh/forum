@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uranium | ERP</title>
+    <title>Uranium | ERP Pro & Ventas</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=uranium_v2">
-    <script type="module" src="script.js?v=uranium_v2" defer></script>
+    <link rel="stylesheet" href="style.css?v=uranium_v3">
+    <script type="module" src="script.js?v=uranium_v3" defer></script>
 </head>
 <body>
 
@@ -24,7 +24,7 @@
         <div class="top-actions">
             <button id="themeToggle" class="icon-btn" title="Modo Oscuro">🌙</button>
             <button id="btnOpenProductModal" class="neo-btn-sm">+ PRODUCTO</button>
-            <button id="btnOpenComboModal" class="neo-btn-sm warning">⚡ CREAR COMBO</button>
+            <button id="btnOpenComboModal" class="neo-btn-sm warning">⚡ COMBO</button>
             <button id="btnOpenSaleModal" class="neo-btn-sm primary">+ VENTA</button>
         </div>
     </header>
@@ -73,7 +73,7 @@
                             <th>COSTO</th>
                             <th>PRECIO VENTA</th>
                             <th>STOCK</th>
-                            <th>ESTADO</th>
+                            <th>ACCIONES</th>
                         </tr>
                     </thead>
                     <tbody id="inventoryBody">
@@ -86,20 +86,21 @@
         <section id="view-sales" class="view-section">
             <div class="section-header">
                 <h2>REGISTRO DE VENTAS</h2>
-                <p class="text-muted">Historial detallado de todas las transacciones procesadas.</p>
+                <p class="text-muted">Historial detallado de todas las transacciones y accesos.</p>
             </div>
             <div class="neo-card table-container">
                 <table id="salesTable">
                     <thead>
                         <tr>
-                            <th>FECHA Y HORA</th>
+                            <th>FECHA</th>
                             <th>PRODUCTO VENDIDO</th>
-                            <th>CANT.</th>
+                            <th>INFO CUENTA</th>
                             <th>INGRESO TOTAL</th>
+                            <th>ACCIONES</th>
                         </tr>
                     </thead>
                     <tbody id="salesBody">
-                        <tr><td colspan="4" class="text-center text-muted">Cargando ventas...</td></tr>
+                        <tr><td colspan="5" class="text-center text-muted">Cargando ventas...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -137,7 +138,7 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>Stock Inicial (Unidades):</label>
+                <label>Stock Inicial (Unidades/Pantallas):</label>
                 <input type="number" id="prodStock" placeholder="Ej. 5">
             </div>
             
@@ -145,9 +146,15 @@
         </div>
     </div>
 
-    <div id="categoryModal" class="modal category-modal-overlay">
-        <div class="modal-content neo-card category-modal-box">
-            <button class="close-btn" data-close="categoryModal">&times;</button>
+
+    <style>
+        #categoryModal { z-index: 1100 !important; }
+        #categoryModal .modal-content { border-color: var(--primary, #D4AF37); box-shadow: 6px 6px 0px var(--primary, #D4AF37); }
+    </style>
+
+    <div id="categoryModal" class="modal">
+        <div class="modal-content neo-card">
+            <button class="close-btn" id="closeCatModalBtn">&times;</button>
             <h2 class="title-font">NUEVA CATEGORÍA</h2>
             <hr class="neo-divider">
             
@@ -161,8 +168,85 @@
         </div>
     </div>
 
+    <script type="module">
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC2tMU45kFmdn-l4i9aiWN1u1fgnklSYqw",
+            authDomain: "foro-9fcf9.firebaseapp.com",
+            projectId: "foro-9fcf9",
+            storageBucket: "foro-9fcf9.firebasestorage.app",
+            messagingSenderId: "145843090601",
+            appId: "1:145843090601:web:83d1e9e8b3b56e927765b8"
+        };
+        
+        const catApp = initializeApp(firebaseConfig, "CategoryApp"); 
+        const dbCat = getFirestore(catApp);
+        const settingsRef = doc(dbCat, "settings", "categories");
+
+        const catModal = document.getElementById('categoryModal');
+        const btnOpenCat = document.getElementById('btnOpenCategoryModal'); 
+        const btnCloseCat = document.getElementById('closeCatModalBtn');
+        const btnSubmitCat = document.getElementById('submitCategoryBtn');
+        const inputCat = document.getElementById('newCategoryInput');
+        const errorCat = document.getElementById('categoryError');
+        
+        const selectProduct = document.getElementById('prodCategory');
+        const selectFilter = document.getElementById('inventoryFilter');
+
+        if(btnOpenCat) {
+            btnOpenCat.addEventListener('click', (e) => {
+                e.preventDefault(); 
+                inputCat.value = '';
+                errorCat.innerText = '';
+                catModal.classList.add('active');
+            });
+        }
+
+        btnCloseCat.addEventListener('click', () => catModal.classList.remove('active'));
+
+        btnSubmitCat.addEventListener('click', async () => {
+            const newCatName = inputCat.value.trim();
+            if (!newCatName) { errorCat.innerText = "Escribe un nombre para la categoría."; return; }
+
+            for (let i = 0; i < selectProduct.options.length; i++) {
+                if (selectProduct.options[i].value.toLowerCase() === newCatName.toLowerCase()) {
+                    errorCat.innerText = "Esta categoría ya existe."; return;
+                }
+            }
+
+            btnSubmitCat.innerText = "GUARDANDO...";
+            btnSubmitCat.disabled = true;
+            errorCat.innerText = "";
+
+            const opt1 = document.createElement("option"); opt1.text = newCatName; opt1.value = newCatName;
+            selectProduct.add(opt1);
+            const opt2 = document.createElement("option"); opt2.text = newCatName; opt2.value = newCatName;
+            selectFilter.add(opt2);
+
+            selectProduct.value = newCatName;
+
+            try {
+                const docSnap = await getDoc(settingsRef);
+                let listaCats = docSnap.exists() && docSnap.data().list ? docSnap.data().list : ["Netflix", "Disney+", "Amazon Prime", "Spotify", "HBO Max", "Crunchyroll"];
+                
+                if(!listaCats.includes(newCatName)) {
+                    listaCats.push(newCatName);
+                    await setDoc(settingsRef, { list: listaCats }, { merge: true });
+                }
+                catModal.classList.remove('active');
+            } catch (error) {
+                console.warn("Bloqueo de Firebase, guardado local: ", error);
+                catModal.classList.remove('active');
+            } finally {
+                btnSubmitCat.innerText = "AÑADIR CATEGORÍA";
+                btnSubmitCat.disabled = false;
+            }
+        });
+    </script>
     <div id="comboModal" class="modal">
-        <div class="modal-content neo-card combo-modal-size">
+        <div class="modal-content neo-card combo-modal-size scroll-modal">
             <button class="close-btn" data-close="comboModal">&times;</button>
             <h2 class="title-font accent-text">⚡ CREADOR DE COMBOS</h2>
             <p class="text-muted mb-20">Toca las apps del inventario para agregarlas al combo.</p>
@@ -170,8 +254,7 @@
             <div class="combo-builder">
                 <div class="apps-source neo-card-inset">
                     <h4>APPS DISPONIBLES</h4>
-                    <div class="apps-grid" id="appsSourceGrid">
-                        </div>
+                    <div class="apps-grid" id="appsSourceGrid"></div>
                 </div>
 
                 <div class="combo-slots-area">
@@ -189,23 +272,28 @@
             <div class="financial-box mt-20">
                 <div class="form-group">
                     <label>Nombre del Combo:</label>
-                    <input type="text" id="comboName" placeholder="Ej. Combo Familiar">
+                    <input type="text" id="comboName" placeholder="Ej. Combo Familiar Supremo">
                 </div>
                 <div class="financial-grid">
                     <div class="fin-item">
-                        <span>Costo Total:</span>
+                        <span>Costo Base:</span>
                         <strong id="comboTotalCost">$0</strong>
                     </div>
                     <div class="fin-item">
-                        <span>Precio Regular:</span>
+                        <span>Suma Precios Regular:</span>
                         <strong id="comboRegularPrice">$0</strong>
                     </div>
+                    
                     <div class="fin-item highlight">
-                        <label>Precio del Combo:</label>
-                        <input type="number" id="comboFinalPrice" placeholder="Ej. 25000">
+                        <label>Precio del Combo (Oferta):</label>
+                        <div class="flex-input">
+                            <input type="number" id="comboFinalPrice" placeholder="Ej. 25000">
+                            <button id="btnSmartPrice" class="neo-btn-sm warning" style="height: 52px; margin-left: 10px;" title="Calcular mejor precio">🪄 AUTO</button>
+                        </div>
                     </div>
+                    
                     <div class="fin-item">
-                        <span>Descuento Aplicado:</span>
+                        <span>Descuento vs Regular:</span>
                         <strong id="comboDiscount" class="text-warning">$0</strong>
                     </div>
                     <div class="fin-item">
@@ -221,7 +309,7 @@
     </div>
 
     <div id="saleModal" class="modal">
-        <div class="modal-content neo-card">
+        <div class="modal-content neo-card scroll-modal">
             <button class="close-btn" data-close="saleModal">&times;</button>
             <h2 class="title-font">REGISTRAR VENTA</h2>
             <hr class="neo-divider">
@@ -232,8 +320,18 @@
                     <option value="">-- Elige un producto del stock --</option>
                 </select>
             </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Correo de la Cuenta:</label>
+                    <input type="email" id="saleEmail" placeholder="correo@ejemplo.com">
+                </div>
+                <div class="form-group">
+                    <label>Contraseña / Pin:</label>
+                    <input type="text" id="salePassword" placeholder="Contraseña">
+                </div>
+            </div>
             <div class="form-group">
-                <label>Cantidad Vendida:</label>
+                <label>Cantidad (Pantallas/Perfiles Vendidos):</label>
                 <input type="number" id="saleQuantity" value="1" min="1">
             </div>
             
@@ -244,6 +342,27 @@
             
             <button id="submitSaleBtn" class="neo-btn w-100 mt-20 primary">CONFIRMAR VENTA</button>
             <div id="saleError" class="error-text text-center mt-10"></div>
+        </div>
+    </div>
+
+    <div id="saleInfoModal" class="modal">
+        <div class="modal-content neo-card" style="max-width: 400px; text-align: center;">
+            <button class="close-btn" data-close="saleInfoModal">&times;</button>
+            <h2 class="title-font">DATOS DE LA CUENTA</h2>
+            <hr class="neo-divider">
+            
+            <div class="neo-card-inset mb-20" style="text-align: left;">
+                <p style="margin-bottom: 10px;"><strong>📧 Correo:</strong> <br> <span id="infoEmail" class="accent-text" style="font-size: 1.1rem;"></span></p>
+                <p><strong>🔑 Contraseña / Pin:</strong> <br> <span id="infoPassword" style="font-size: 1.1rem;"></span></p>
+            </div>
+            
+            <div style="background: rgba(212,175,55,0.1); border: 2px dashed var(--primary); padding: 15px;">
+                <h3 style="font-size: 0.9rem; color: var(--text-muted);">OCUPACIÓN DE LA CUENTA</h3>
+                <h1 class="text-success" style="font-size: 3rem; margin: 10px 0; line-height: 1;"><span id="infoTimesSold">0</span></h1>
+                <p style="font-size: 0.8rem; font-weight: bold;">VENTAS REGISTRADAS CON ESTE CORREO</p>
+            </div>
+            
+            <button class="neo-btn w-100 mt-20" data-close="saleInfoModal">CERRAR INFO</button>
         </div>
     </div>
 
