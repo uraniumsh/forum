@@ -77,7 +77,7 @@ body { background-color: var(--bg-color); color: var(--text-main); line-height: 
     cursor: pointer; font-size: 1.2rem; transition: transform 0.1s, box-shadow 0.1s; color: var(--text-main);
 }
 
-/* --- BOTONES NEO (CON FÍSICA DE CLIC) --- */
+/* --- BOTONES NEO --- */
 .neo-btn-sm {
     background: var(--bg-color); color: var(--text-main); font-weight: 800; font-size: 0.75rem;
     border: 2px solid var(--border-color); padding: 0 15px; height: 40px; cursor: pointer; 
@@ -95,30 +95,16 @@ body { background-color: var(--bg-color); color: var(--text-main); line-height: 
 .neo-btn.warning { background: var(--warning); color: #000; }
 .neo-btn:disabled { background: #555; color: #aaa; cursor: not-allowed; box-shadow: none; transform: none; }
 
-/* EFECTOS HOVER (LEVANTAR) */
 .icon-btn:hover { transform: translate(-2px, -2px); box-shadow: 4px 4px 0px var(--border-color); }
 .neo-btn-sm:hover { transform: translate(-2px, -2px); box-shadow: 4px 4px 0px var(--border-color); }
 .neo-btn:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0px var(--border-color); }
+.icon-btn:active, .neo-btn-sm:active, .neo-btn:active { transform: translate(4px, 4px) !important; box-shadow: 0px 0px 0px transparent !important; }
 
-/* EFECTOS ACTIVE (HUNDIR EL BOTÓN AL PRESIONAR) */
-.icon-btn:active, .neo-btn-sm:active, .neo-btn:active {
-    transform: translate(4px, 4px) !important;
-    box-shadow: 0px 0px 0px transparent !important;
-}
-
-/* --- SECCIONES Y ANIMACIÓN DE ENTRADA (MÁS PRONUNCIADA) --- */
+/* --- SECCIONES Y ANIMACIÓN DE ENTRADA --- */
 .container { max-width: 1300px; margin: 0 auto; padding: 40px 5%; min-height: 80vh; }
 .view-section { display: none; }
-
-.view-section.active { 
-    display: block; 
-    animation: sectionEntrance 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
-}
-@keyframes sectionEntrance {
-    0% { opacity: 0; transform: translateY(40px) scale(0.98); }
-    100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-
+.view-section.active { display: block; animation: sectionEntrance 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+@keyframes sectionEntrance { 0% { opacity: 0; transform: translateY(40px) scale(0.98); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
 .section-header { margin-bottom: 30px; }
 .section-header h2 { font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem; }
 .neo-card { background: var(--surface-color); border: 3px solid var(--border-color); box-shadow: var(--neo-shadow); padding: 30px; transition: background-color 0.3s; }
@@ -136,7 +122,6 @@ body { background-color: var(--bg-color); color: var(--text-main); line-height: 
 table { width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; }
 th { background: var(--accent); color: var(--bg-color); padding: 15px; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; }
 td { padding: 15px; border-bottom: 2px solid var(--border-color); font-size: 0.95rem; font-weight: 600; }
-
 .badge-stock { background: var(--border-color); color: var(--bg-color); padding: 4px 10px; font-family: 'Space Grotesk', sans-serif; }
 .badge-empty { background: var(--danger); color: #fff; padding: 4px 8px; font-weight: 800; font-size: 0.7rem; border: 2px solid var(--border-color); }
 .badge-ok { background: var(--success); color: #000; padding: 4px 8px; font-weight: 800; font-size: 0.7rem; border: 2px solid var(--border-color); }
@@ -153,23 +138,19 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 4px 4px 0p
 .calculator-box { text-align: center; margin-top: 20px; }
 .calculator-box h2 { font-size: 2.5rem; transition: color 0.2s; }
 
-/* --- ANIMACIÓN ESTILO POP-UP PARA MODALES --- */
+/* --- MODALES --- */
 .modal {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(3px);
     display: flex; justify-content: center; align-items: center; z-index: 1000;
     opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease;
 }
-
 .modal-content { 
     width: 90%; max-width: 500px; position: relative; max-height: 90vh; overflow-y: auto; 
-    transform: translateY(40px) scale(0.9);
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform: translateY(40px) scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-
 .modal.active { opacity: 1; visibility: visible; }
 .modal.active .modal-content { transform: translateY(0) scale(1); }
-
 .close-btn { 
     position: absolute; top: 15px; right: 20px; font-size: 2.5rem; cursor: pointer; 
     color: var(--text-main); background: transparent; border: none; font-weight: 800; line-height: 1;
@@ -177,6 +158,10 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 4px 4px 0p
 }
 .close-btn:hover { color: var(--danger); transform: rotate(90deg) scale(1.1); }
 .close-btn:active { transform: scale(0.9); }
+
+/* Modal de Categoría Especial (encima del otro) */
+.category-modal-overlay { z-index: 1100 !important; background: rgba(0,0,0,0.9); }
+.category-modal-box { border-color: var(--primary) !important; box-shadow: 6px 6px 0px var(--primary) !important; }
 
 /* --- COMBOS --- */
 .combo-modal-size { max-width: 800px; }
