@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uranium | ERP & Ventas</title>
+    <title>Uranium | ERP Pro</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
@@ -12,75 +12,89 @@
 </head>
 <body>
 
-    <header class="navbar neo-section">
+    <header class="topbar">
         <div class="logo">URANIUM<span>ERP</span></div>
-        <div class="user-controls">
-            <button id="themeToggle" class="neo-btn-outline">🌙 MODO OSCURO</button>
-            <button id="btnOpenProductModal" class="neo-btn-outline">NUEVO PRODUCTO</button>
-            <button id="btnOpenSaleModal" class="neo-btn">REGISTRAR VENTA</button>
+        
+        <nav class="nav-tabs">
+            <button class="tab-btn active" data-target="view-dashboard">DASHBOARD</button>
+            <button class="tab-btn" data-target="view-inventory">INVENTARIO</button>
+            <button class="tab-btn" data-target="view-sales">HISTORIAL VENTAS</button>
+        </nav>
+
+        <div class="top-actions">
+            <button id="themeToggle" class="icon-btn" title="Modo Oscuro">🌙</button>
+            <button id="btnOpenProductModal" class="neo-btn-sm">+ PRODUCTO</button>
+            <button id="btnOpenSaleModal" class="neo-btn-sm primary">+ VENTA</button>
         </div>
     </header>
 
     <main class="container">
         
-        <section class="metrics-grid neo-section">
-            <div class="neo-card metric-card">
-                <h3>INGRESOS TOTALES</h3>
-                <div class="metric-value accent-text" id="totalRevenue">$0</div>
+        <section id="view-dashboard" class="view-section active">
+            <div class="section-header">
+                <h2>MÉTRICAS GLOBALES</h2>
+                <p class="text-muted">Resumen del rendimiento de tu negocio en tiempo real.</p>
             </div>
-            <div class="neo-card metric-card">
-                <h3>VENTAS REALIZADAS</h3>
-                <div class="metric-value" id="totalSalesCount">0</div>
-            </div>
-            <div class="neo-card metric-card">
-                <h3>PRODUCTOS EN STOCK</h3>
-                <div class="metric-value" id="totalStockCount">0</div>
+            <div class="metrics-grid">
+                <div class="neo-card metric-card">
+                    <h3>INGRESOS TOTALES</h3>
+                    <div class="metric-value accent-text" id="totalRevenue">$0</div>
+                </div>
+                <div class="neo-card metric-card">
+                    <h3>VENTAS REALIZADAS</h3>
+                    <div class="metric-value" id="totalSalesCount">0</div>
+                </div>
+                <div class="neo-card metric-card">
+                    <h3>PRODUCTOS EN STOCK</h3>
+                    <div class="metric-value" id="totalStockCount">0</div>
+                </div>
             </div>
         </section>
 
-        <div class="tables-layout">
-            <section class="neo-section table-wrapper">
-                <div class="section-header">
-                    <h2>INVENTARIO ACTUAL</h2>
-                </div>
-                <div class="neo-card table-container">
-                    <table id="inventoryTable">
-                        <thead>
-                            <tr>
-                                <th>PRODUCTO</th>
-                                <th>PRECIO</th>
-                                <th>STOCK</th>
-                                <th>ESTADO</th>
-                            </tr>
-                        </thead>
-                        <tbody id="inventoryBody">
-                            <tr><td colspan="4" class="text-center text-muted">Cargando inventario...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+        <section id="view-inventory" class="view-section hidden">
+            <div class="section-header">
+                <h2>GESTOR DE INVENTARIO</h2>
+                <p class="text-muted">Administra tus productos, precios y disponibilidad.</p>
+            </div>
+            <div class="neo-card table-container">
+                <table id="inventoryTable">
+                    <thead>
+                        <tr>
+                            <th>PRODUCTO</th>
+                            <th>PRECIO</th>
+                            <th>STOCK</th>
+                            <th>ESTADO</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryBody">
+                        <tr><td colspan="4" class="text-center text-muted">Cargando inventario...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
-            <section class="neo-section table-wrapper">
-                <div class="section-header">
-                    <h2>ÚLTIMAS VENTAS</h2>
-                </div>
-                <div class="neo-card table-container">
-                    <table id="salesTable">
-                        <thead>
-                            <tr>
-                                <th>FECHA</th>
-                                <th>PRODUCTO</th>
-                                <th>CANT.</th>
-                                <th>INGRESO</th>
-                            </tr>
-                        </thead>
-                        <tbody id="salesBody">
-                            <tr><td colspan="4" class="text-center text-muted">Cargando ventas...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </div>
+        <section id="view-sales" class="view-section hidden">
+            <div class="section-header">
+                <h2>REGISTRO DE VENTAS</h2>
+                <p class="text-muted">Historial detallado de todas las transacciones procesadas.</p>
+            </div>
+            <div class="neo-card table-container">
+                <table id="salesTable">
+                    <thead>
+                        <tr>
+                            <th>FECHA Y HORA</th>
+                            <th>PRODUCTO VENDIDO</th>
+                            <th>CANTIDAD</th>
+                            <th>INGRESO TOTAL</th>
+                        </tr>
+                    </thead>
+                    <tbody id="salesBody">
+                        <tr><td colspan="4" class="text-center text-muted">Cargando ventas...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
     </main>
 
     <div id="productModal" class="modal">
@@ -91,14 +105,14 @@
             
             <div class="form-group">
                 <label>Nombre del Producto:</label>
-                <input type="text" id="prodName" placeholder="Ej. Perfil Netflix">
+                <input type="text" id="prodName" placeholder="Ej. Perfil Netflix Premium">
             </div>
             <div class="form-group">
                 <label>Precio de Venta (COP):</label>
                 <input type="number" id="prodPrice" placeholder="Ej. 15000">
             </div>
             <div class="form-group">
-                <label>Stock Inicial:</label>
+                <label>Stock Inicial (Unidades):</label>
                 <input type="number" id="prodStock" placeholder="Ej. 10">
             </div>
             
@@ -115,7 +129,7 @@
             <div class="form-group">
                 <label>Seleccionar Producto:</label>
                 <select id="saleProductSelect">
-                    <option value="">-- Elige un producto --</option>
+                    <option value="">-- Elige un producto del stock --</option>
                 </select>
             </div>
             <div class="form-group">
