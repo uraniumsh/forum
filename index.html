@@ -7,8 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=uranium_v3">
-    <script type="module" src="script.js?v=uranium_v3" defer></script>
+    <link rel="stylesheet" href="style.css?v=uranium_v5">
+    <script type="module" src="script.js?v=uranium_v5" defer></script>
 </head>
 <body>
 
@@ -36,18 +36,39 @@
                 <h2>MÉTRICAS GLOBALES</h2>
                 <p class="text-muted">Resumen del rendimiento de tu negocio en tiempo real.</p>
             </div>
+            
             <div class="metrics-grid">
                 <div class="neo-card metric-card">
                     <h3>INGRESOS TOTALES</h3>
                     <div class="metric-value accent-text" id="totalRevenue">$0</div>
                 </div>
                 <div class="neo-card metric-card">
-                    <h3>GANANCIA NETA APROX.</h3>
+                    <h3>GANANCIA NETA GLOBAL</h3>
                     <div class="metric-value text-success" id="totalProfit">$0</div>
                 </div>
                 <div class="neo-card metric-card">
-                    <h3>VENTAS / STOCK</h3>
+                    <h3>VENTAS / STOCK TOTAL</h3>
                     <div class="metric-value"><span id="totalSalesCount">0</span> <span style="font-size: 1rem; color: gray;">/ <span id="totalStockCount">0</span></span></div>
+                </div>
+                
+                <div class="neo-card metric-card full-width-card">
+                    <h3 class="accent-text" style="border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 20px;">
+                        🤝 GESTIÓN DE CAPITAL Y SOCIOS (50/50)
+                    </h3>
+                    <div class="partners-grid">
+                        <div class="form-group" style="margin: 0;">
+                            <label>Base Invertida (Plataforma):</label>
+                            <input type="number" id="baseCapital" placeholder="Ej. 100000" style="font-size: 1.5rem; color: var(--primary);">
+                        </div>
+                        <div class="partner-box">
+                            <span>SOCIO 1 (Ganancia 50%)</span>
+                            <strong id="partner1Cut" class="text-success">$0</strong>
+                        </div>
+                        <div class="partner-box">
+                            <span>SOCIO 2 (Ganancia 50%)</span>
+                            <strong id="partner2Cut" class="text-success">$0</strong>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -56,7 +77,7 @@
             <div class="section-header flex-between">
                 <div>
                     <h2>GESTOR DE INVENTARIO</h2>
-                    <p class="text-muted">Administra tus productos, precios y disponibilidad.</p>
+                    <p class="text-muted">Administra y edita tus productos.</p>
                 </div>
                 <div class="filter-box">
                     <select id="inventoryFilter">
@@ -72,7 +93,7 @@
                             <th>CATEGORÍA</th>
                             <th>COSTO</th>
                             <th>PRECIO VENTA</th>
-                            <th>STOCK</th>
+                            <th>STOCK RAPIDO</th>
                             <th>ACCIONES</th>
                         </tr>
                     </thead>
@@ -86,7 +107,7 @@
         <section id="view-sales" class="view-section">
             <div class="section-header">
                 <h2>REGISTRO DE VENTAS</h2>
-                <p class="text-muted">Historial detallado de todas las transacciones y accesos.</p>
+                <p class="text-muted">Historial detallado y edición de ventas.</p>
             </div>
             <div class="neo-card table-container">
                 <table id="salesTable">
@@ -120,7 +141,8 @@
                     <select id="prodCategory">
                         <option value="">-- Selecciona --</option>
                     </select>
-                    <button id="btnOpenCategoryModal" class="neo-btn-sm" style="height: 52px; margin-left: 10px;">+ NUEVA</button>
+                    <button id="btnOpenCategoryModal" class="neo-btn-sm" style="height: 52px; margin-left: 10px;" title="Nueva Categoría">+ NUEVA</button>
+                    <button id="btnManageCategoriesModal" class="neo-btn-sm danger" style="height: 52px; margin-left: 5px;" title="Eliminar Categorías">🗑️</button>
                 </div>
             </div>
             <div class="form-group">
@@ -129,11 +151,11 @@
             </div>
             <div class="grid-2">
                 <div class="form-group">
-                    <label>Costo:</label>
+                    <label>Costo (Lo que te vale):</label>
                     <input type="number" id="prodCost" placeholder="Ej. 10000">
                 </div>
                 <div class="form-group">
-                    <label>Precio Venta:</label>
+                    <label>Precio Venta Regular (PVP):</label>
                     <input type="number" id="prodPrice" placeholder="Ej. 15000">
                 </div>
             </div>
@@ -146,105 +168,66 @@
         </div>
     </div>
 
+    <div id="editProductModal" class="modal">
+        <div class="modal-content neo-card scroll-modal">
+            <button class="close-btn" data-close="editProductModal">&times;</button>
+            <h2 class="title-font">EDITAR PRODUCTO</h2>
+            <hr class="neo-divider">
+            <input type="hidden" id="editProdId">
+            
+            <div class="form-group">
+                <label>Categoría:</label>
+                <select id="editProdCategory">
+                    <option value="">-- Selecciona --</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Nombre del Producto:</label>
+                <input type="text" id="editProdName" placeholder="Ej. Pantalla Netflix">
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Costo:</label>
+                    <input type="number" id="editProdCost">
+                </div>
+                <div class="form-group">
+                    <label>Precio Venta Regular:</label>
+                    <input type="number" id="editProdPrice">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Stock Actual:</label>
+                <input type="number" id="editProdStock">
+            </div>
+            
+            <button id="submitEditProductBtn" class="neo-btn w-100 mt-20 warning">ACTUALIZAR PRODUCTO</button>
+        </div>
+    </div>
 
-    <style>
-        #categoryModal { z-index: 1100 !important; }
-        #categoryModal .modal-content { border-color: var(--primary, #D4AF37); box-shadow: 6px 6px 0px var(--primary, #D4AF37); }
-    </style>
-
-    <div id="categoryModal" class="modal">
-        <div class="modal-content neo-card">
-            <button class="close-btn" id="closeCatModalBtn">&times;</button>
+    <div id="categoryModal" class="modal" style="z-index: 1100;">
+        <div class="modal-content neo-card" style="border-color: var(--primary); box-shadow: 6px 6px 0px var(--primary);">
+            <button class="close-btn" data-close="categoryModal">&times;</button>
             <h2 class="title-font">NUEVA CATEGORÍA</h2>
             <hr class="neo-divider">
-            
             <div class="form-group">
                 <label>Nombre de la Categoría:</label>
                 <input type="text" id="newCategoryInput" placeholder="Ej. Pantallas, Combos, Música...">
             </div>
-            
             <button id="submitCategoryBtn" class="neo-btn w-100 mt-20">AÑADIR CATEGORÍA</button>
             <div id="categoryError" class="error-text text-center mt-10"></div>
         </div>
     </div>
 
-    <script type="module">
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    <div id="manageCategoriesModal" class="modal" style="z-index: 1150;">
+        <div class="modal-content neo-card">
+            <button class="close-btn" data-close="manageCategoriesModal">&times;</button>
+            <h2 class="title-font">ELIMINAR CATEGORÍAS</h2>
+            <hr class="neo-divider">
+            <p class="text-muted mb-20">Las categorías eliminadas desaparecerán de las opciones.</p>
+            <div id="categoriesListContainer" style="max-height: 300px; overflow-y: auto; padding-right: 5px;"></div>
+        </div>
+    </div>
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyC2tMU45kFmdn-l4i9aiWN1u1fgnklSYqw",
-            authDomain: "foro-9fcf9.firebaseapp.com",
-            projectId: "foro-9fcf9",
-            storageBucket: "foro-9fcf9.firebasestorage.app",
-            messagingSenderId: "145843090601",
-            appId: "1:145843090601:web:83d1e9e8b3b56e927765b8"
-        };
-        
-        const catApp = initializeApp(firebaseConfig, "CategoryApp"); 
-        const dbCat = getFirestore(catApp);
-        const settingsRef = doc(dbCat, "settings", "categories");
-
-        const catModal = document.getElementById('categoryModal');
-        const btnOpenCat = document.getElementById('btnOpenCategoryModal'); 
-        const btnCloseCat = document.getElementById('closeCatModalBtn');
-        const btnSubmitCat = document.getElementById('submitCategoryBtn');
-        const inputCat = document.getElementById('newCategoryInput');
-        const errorCat = document.getElementById('categoryError');
-        
-        const selectProduct = document.getElementById('prodCategory');
-        const selectFilter = document.getElementById('inventoryFilter');
-
-        if(btnOpenCat) {
-            btnOpenCat.addEventListener('click', (e) => {
-                e.preventDefault(); 
-                inputCat.value = '';
-                errorCat.innerText = '';
-                catModal.classList.add('active');
-            });
-        }
-
-        btnCloseCat.addEventListener('click', () => catModal.classList.remove('active'));
-
-        btnSubmitCat.addEventListener('click', async () => {
-            const newCatName = inputCat.value.trim();
-            if (!newCatName) { errorCat.innerText = "Escribe un nombre para la categoría."; return; }
-
-            for (let i = 0; i < selectProduct.options.length; i++) {
-                if (selectProduct.options[i].value.toLowerCase() === newCatName.toLowerCase()) {
-                    errorCat.innerText = "Esta categoría ya existe."; return;
-                }
-            }
-
-            btnSubmitCat.innerText = "GUARDANDO...";
-            btnSubmitCat.disabled = true;
-            errorCat.innerText = "";
-
-            const opt1 = document.createElement("option"); opt1.text = newCatName; opt1.value = newCatName;
-            selectProduct.add(opt1);
-            const opt2 = document.createElement("option"); opt2.text = newCatName; opt2.value = newCatName;
-            selectFilter.add(opt2);
-
-            selectProduct.value = newCatName;
-
-            try {
-                const docSnap = await getDoc(settingsRef);
-                let listaCats = docSnap.exists() && docSnap.data().list ? docSnap.data().list : ["Netflix", "Disney+", "Amazon Prime", "Spotify", "HBO Max", "Crunchyroll"];
-                
-                if(!listaCats.includes(newCatName)) {
-                    listaCats.push(newCatName);
-                    await setDoc(settingsRef, { list: listaCats }, { merge: true });
-                }
-                catModal.classList.remove('active');
-            } catch (error) {
-                console.warn("Bloqueo de Firebase, guardado local: ", error);
-                catModal.classList.remove('active');
-            } finally {
-                btnSubmitCat.innerText = "AÑADIR CATEGORÍA";
-                btnSubmitCat.disabled = false;
-            }
-        });
-    </script>
     <div id="comboModal" class="modal">
         <div class="modal-content neo-card combo-modal-size scroll-modal">
             <button class="close-btn" data-close="comboModal">&times;</button>
@@ -320,6 +303,18 @@
                     <option value="">-- Elige un producto del stock --</option>
                 </select>
             </div>
+            
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Precio de Venta (Personalizado):</label>
+                    <input type="number" id="salePriceOverride" placeholder="Modifica si diste descuento">
+                </div>
+                <div class="form-group">
+                    <label>Cantidad Vendida:</label>
+                    <input type="number" id="saleQuantity" value="1" min="1">
+                </div>
+            </div>
+
             <div class="grid-2">
                 <div class="form-group">
                     <label>Correo:</label>
@@ -329,10 +324,6 @@
                     <label>Contraseña:</label>
                     <input type="text" id="salePassword" placeholder="Contraseña">
                 </div>
-            </div>
-            <div class="form-group">
-                <label>Cantidad (Pantallas/Perfiles Vendidos):</label>
-                <input type="number" id="saleQuantity" value="1" min="1">
             </div>
             
             <div class="calculator-box neo-card-inset">
@@ -345,6 +336,46 @@
         </div>
     </div>
 
+    <div id="editSaleModal" class="modal">
+        <div class="modal-content neo-card scroll-modal">
+            <button class="close-btn" data-close="editSaleModal">&times;</button>
+            <h2 class="title-font">EDITAR VENTA</h2>
+            <hr class="neo-divider">
+            <input type="hidden" id="editSaleId">
+            <p class="text-muted mb-20">Producto: <strong id="editSaleProductName" class="accent-text"></strong></p>
+            
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Precio Unitario Cobrado:</label>
+                    <input type="number" id="editSalePriceOverride">
+                </div>
+                <div class="form-group">
+                    <label>Cantidad Vendida:</label>
+                    <input type="number" id="editSaleQuantity" min="1">
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Correo:</label>
+                    <input type="email" id="editSaleEmail">
+                </div>
+                <div class="form-group">
+                    <label>Contraseña:</label>
+                    <input type="text" id="editSalePassword">
+                </div>
+            </div>
+            
+            <div class="calculator-box neo-card-inset">
+                <p>NUEVO TOTAL:</p>
+                <h2 id="editSaleTotalText" class="accent-text">$0 COP</h2>
+            </div>
+            
+            <button id="submitEditSaleBtn" class="neo-btn w-100 mt-20 warning">ACTUALIZAR VENTA</button>
+            <div id="editSaleError" class="error-text text-center mt-10"></div>
+        </div>
+    </div>
+
     <div id="saleInfoModal" class="modal">
         <div class="modal-content neo-card" style="max-width: 400px; text-align: center;">
             <button class="close-btn" data-close="saleInfoModal">&times;</button>
@@ -353,7 +384,7 @@
             
             <div class="neo-card-inset mb-20" style="text-align: left;">
                 <p style="margin-bottom: 10px;"><strong>📧 Correo:</strong> <br> <span id="infoEmail" class="accent-text" style="font-size: 1.1rem;"></span></p>
-                <p><strong>🔑 Contraseña / Pin:</strong> <br> <span id="infoPassword" style="font-size: 1.1rem;"></span></p>
+                <p><strong>🔑 Contraseña:</strong> <br> <span id="infoPassword" style="font-size: 1.1rem;"></span></p>
             </div>
             
             <div style="background: rgba(212,175,55,0.1); border: 2px dashed var(--primary); padding: 15px;">
@@ -367,4 +398,5 @@
     </div>
 
 </body>
-</html>
+                            </html>
+    
