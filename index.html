@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uranium | ERP</title>
+    <title>Uranium | ERP Pro & Ventas</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
@@ -24,6 +24,7 @@
         <div class="top-actions">
             <button id="themeToggle" class="icon-btn" title="Modo Oscuro">🌙</button>
             <button id="btnOpenProductModal" class="neo-btn-sm">+ PRODUCTO</button>
+            <button id="btnOpenComboModal" class="neo-btn-sm warning">⚡ CREAR COMBO</button>
             <button id="btnOpenSaleModal" class="neo-btn-sm primary">+ VENTA</button>
         </div>
     </header>
@@ -41,39 +42,48 @@
                     <div class="metric-value accent-text" id="totalRevenue">$0</div>
                 </div>
                 <div class="neo-card metric-card">
-                    <h3>VENTAS REALIZADAS</h3>
-                    <div class="metric-value" id="totalSalesCount">0</div>
+                    <h3>GANANCIA NETA APROX.</h3>
+                    <div class="metric-value text-success" id="totalProfit">$0</div>
                 </div>
                 <div class="neo-card metric-card">
-                    <h3>PRODUCTOS EN STOCK</h3>
-                    <div class="metric-value" id="totalStockCount">0</div>
+                    <h3>VENTAS / STOCK</h3>
+                    <div class="metric-value"><span id="totalSalesCount">0</span> <span style="font-size: 1rem; color: gray;">/ <span id="totalStockCount">0</span></span></div>
                 </div>
             </div>
         </section>
 
-        <section id="view-inventory" class="view-section hidden">
-            <div class="section-header">
-                <h2>GESTOR DE INVENTARIO</h2>
-                <p class="text-muted">Administra tus productos, precios y disponibilidad.</p>
+        <section id="view-inventory" class="view-section">
+            <div class="section-header flex-between">
+                <div>
+                    <h2>GESTOR DE INVENTARIO</h2>
+                    <p class="text-muted">Administra tus productos, precios y disponibilidad.</p>
+                </div>
+                <div class="filter-box">
+                    <select id="inventoryFilter">
+                        <option value="ALL">Todas las Categorías</option>
+                    </select>
+                </div>
             </div>
             <div class="neo-card table-container">
                 <table id="inventoryTable">
                     <thead>
                         <tr>
                             <th>PRODUCTO</th>
-                            <th>PRECIO</th>
+                            <th>CATEGORÍA</th>
+                            <th>COSTO</th>
+                            <th>PRECIO VENTA</th>
                             <th>STOCK</th>
                             <th>ESTADO</th>
                         </tr>
                     </thead>
                     <tbody id="inventoryBody">
-                        <tr><td colspan="4" class="text-center text-muted">Cargando inventario...</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted">Cargando inventario...</td></tr>
                     </tbody>
                 </table>
             </div>
         </section>
 
-        <section id="view-sales" class="view-section hidden">
+        <section id="view-sales" class="view-section">
             <div class="section-header">
                 <h2>REGISTRO DE VENTAS</h2>
                 <p class="text-muted">Historial detallado de todas las transacciones procesadas.</p>
@@ -84,7 +94,7 @@
                         <tr>
                             <th>FECHA Y HORA</th>
                             <th>PRODUCTO VENDIDO</th>
-                            <th>CANTIDAD</th>
+                            <th>CANT.</th>
                             <th>INGRESO TOTAL</th>
                         </tr>
                     </thead>
@@ -98,36 +108,110 @@
     </main>
 
     <div id="productModal" class="modal">
-        <div class="modal-content neo-card">
+        <div class="modal-content neo-card scroll-modal">
             <button class="close-btn" data-close="productModal">&times;</button>
             <h2 class="title-font">NUEVO PRODUCTO</h2>
             <hr class="neo-divider">
             
             <div class="form-group">
-                <label>Nombre del Producto:</label>
-                <input type="text" id="prodName" placeholder="Ej. Perfil Netflix Premium">
+                <label>Categoría:</label>
+                <div class="flex-input">
+                    <select id="prodCategory">
+                        <option value="">-- Selecciona --</option>
+                    </select>
+                    <button id="btnAddCategory" class="neo-btn-sm" style="height: 52px; margin-left: 10px;">+ NUEVA</button>
+                </div>
             </div>
             <div class="form-group">
-                <label>Precio de Venta (COP):</label>
-                <input type="number" id="prodPrice" placeholder="Ej. 15000">
+                <label>Nombre del Producto:</label>
+                <input type="text" id="prodName" placeholder="Ej. Pantalla Netflix">
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Costo (Lo que te vale):</label>
+                    <input type="number" id="prodCost" placeholder="Ej. 10000">
+                </div>
+                <div class="form-group">
+                    <label>Precio Venta (PVP):</label>
+                    <input type="number" id="prodPrice" placeholder="Ej. 15000">
+                </div>
             </div>
             <div class="form-group">
                 <label>Stock Inicial (Unidades):</label>
-                <input type="number" id="prodStock" placeholder="Ej. 10">
+                <input type="number" id="prodStock" placeholder="Ej. 5">
             </div>
             
-            <button id="submitProductBtn" class="neo-btn w-100 mt-20">GUARDAR EN INVENTARIO</button>
+            <button id="submitProductBtn" class="neo-btn w-100 mt-20">GUARDAR PRODUCTO</button>
+        </div>
+    </div>
+
+    <div id="comboModal" class="modal">
+        <div class="modal-content neo-card combo-modal-size">
+            <button class="close-btn" data-close="comboModal">&times;</button>
+            <h2 class="title-font accent-text">⚡ CREADOR DE COMBOS</h2>
+            <p class="text-muted mb-20">Arrastra las apps del inventario hacia las ranuras vacías.</p>
+            
+            <div class="combo-builder">
+                <div class="apps-source neo-card-inset">
+                    <h4>APPS DISPONIBLES</h4>
+                    <div class="apps-grid" id="appsSourceGrid">
+                        </div>
+                </div>
+
+                <div class="combo-slots-area">
+                    <h4>ARMA TU COMBO</h4>
+                    <div class="slots-container" id="comboSlotsContainer">
+                        <div class="combo-slot empty" data-slot="1">Arrastra<br>Aquí</div>
+                        <div class="combo-slot empty" data-slot="2">Arrastra<br>Aquí</div>
+                        <div class="combo-slot empty" data-slot="3">Arrastra<br>Aquí</div>
+                        <div class="combo-slot empty" data-slot="4">Arrastra<br>Aquí</div>
+                        <div class="combo-slot empty" data-slot="5">Arrastra<br>Aquí</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="financial-box mt-20">
+                <div class="form-group">
+                    <label>Nombre del Combo:</label>
+                    <input type="text" id="comboName" placeholder="Ej. Combo Familiar (Netflix + Disney)">
+                </div>
+                <div class="financial-grid">
+                    <div class="fin-item">
+                        <span>Costo Total:</span>
+                        <strong id="comboTotalCost">$0</strong>
+                    </div>
+                    <div class="fin-item">
+                        <span>Precio Regular:</span>
+                        <strong id="comboRegularPrice">$0</strong>
+                    </div>
+                    <div class="fin-item highlight">
+                        <label>Precio del Combo:</label>
+                        <input type="number" id="comboFinalPrice" placeholder="Ej. 25000">
+                    </div>
+                    <div class="fin-item">
+                        <span>Descuento Aplicado:</span>
+                        <strong id="comboDiscount" class="text-warning">$0</strong>
+                    </div>
+                    <div class="fin-item">
+                        <span>Ganancia Neta:</span>
+                        <strong id="comboProfit" class="text-success">$0</strong>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="submitComboBtn" class="neo-btn w-100 mt-20 warning">GUARDAR COMBO EN INVENTARIO</button>
+            <div id="comboError" class="error-text text-center mt-10"></div>
         </div>
     </div>
 
     <div id="saleModal" class="modal">
         <div class="modal-content neo-card">
             <button class="close-btn" data-close="saleModal">&times;</button>
-            <h2 class="title-font">NUEVA VENTA</h2>
+            <h2 class="title-font">REGISTRAR VENTA</h2>
             <hr class="neo-divider">
             
             <div class="form-group">
-                <label>Seleccionar Producto:</label>
+                <label>Seleccionar Producto/Combo:</label>
                 <select id="saleProductSelect">
                     <option value="">-- Elige un producto del stock --</option>
                 </select>
@@ -142,7 +226,7 @@
                 <h2 id="saleTotalText" class="accent-text">$0 COP</h2>
             </div>
             
-            <button id="submitSaleBtn" class="neo-btn w-100 mt-20">CONFIRMAR VENTA</button>
+            <button id="submitSaleBtn" class="neo-btn w-100 mt-20 primary">CONFIRMAR VENTA</button>
             <div id="saleError" class="error-text text-center mt-10"></div>
         </div>
     </div>
