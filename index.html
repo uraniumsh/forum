@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uranium | ERP Pro & Ventas</title>
+    <title>Uranium | ERP</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
@@ -120,7 +120,7 @@
             <p class="text-muted mb-20">Producto: <strong id="editSaleProductName" class="accent-text"></strong></p>
             
             <div class="grid-2">
-                <div class="form-group"><label>Precio Unitario Cobrado:</label><input type="number" id="editSalePriceOverride"></div>
+                <div class="form-group"><label>Precio Unitario:</label><input type="number" id="editSalePriceOverride"></div>
                 <div class="form-group"><label>Cantidad Vendida:</label><input type="number" id="editSaleQuantity" min="1"></div>
             </div>
 
@@ -183,8 +183,8 @@
             </div>
             <div class="form-group"><label>Nombre del Producto:</label><input type="text" id="prodName"></div>
             <div class="grid-2">
-                <div class="form-group"><label>Costo (Lo que te vale):</label><input type="number" id="prodCost"></div>
-                <div class="form-group"><label>Precio Venta (PVP):</label><input type="number" id="prodPrice"></div>
+                <div class="form-group"><label>Costo:</label><input type="number" id="prodCost"></div>
+                <div class="form-group"><label>Precio de venta:</label><input type="number" id="prodPrice"></div>
             </div>
             <div class="form-group"><label>Stock Inicial:</label><input type="number" id="prodStock" placeholder="Ej. 5"></div>
             <button id="submitProductBtn" class="neo-btn w-100 mt-20">GUARDAR PRODUCTO</button>
@@ -262,7 +262,7 @@
     <div id="textEditorModal" class="modal" style="z-index: 1200;">
         <div class="modal-content neo-card" style="border-color: var(--warning); box-shadow: 6px 6px 0px var(--warning);">
             <button class="close-btn" data-close="textEditorModal">&times;</button>
-            <h2 class="title-font">EDITAR TEXTO LARGO</h2>
+            <h2 class="title-font">EDITAR TEXTO</h2>
             <hr class="neo-divider">
             <textarea id="longTextInput" rows="5" style="width:100%; padding:15px; background:var(--bg-color); border:3px solid var(--border-color); color:var(--text-main); font-family:'Inter'; resize:vertical;"></textarea>
             <button id="saveLongTextBtn" class="neo-btn w-100 mt-20 warning">APLICAR TEXTO</button>
@@ -281,13 +281,13 @@
             </div>
             
             <div class="grid-2">
-                <div class="form-group"><label>Precio Venta (Personalizado):</label><input type="number" id="salePriceOverride"></div>
+                <div class="form-group"><label>Precio Venta:</label><input type="number" id="salePriceOverride"></div>
                 <div class="form-group"><label>Cantidad Vendida:</label><input type="number" id="saleQuantity" value="1" min="1"></div>
             </div>
 
             <div class="grid-2">
                 <div class="form-group">
-                    <label>Correo de la Cuenta:</label>
+                    <label>Correo:</label>
                     <div class="flex-input">
                         <input type="text" id="saleEmail" placeholder="correo@ej.com">
                         <button class="neo-btn-sm" style="height:52px; margin-left:5px;" onclick="openTextEditor('saleEmail')">📝</button>
@@ -336,7 +336,7 @@
             <p class="text-muted mb-20">Producto: <strong id="editSaleProductName" class="accent-text"></strong></p>
             
             <div class="grid-2">
-                <div class="form-group"><label>Precio Unitario Cobrado:</label><input type="number" id="editSalePriceOverride"></div>
+                <div class="form-group"><label>Precio Unitario:</label><input type="number" id="editSalePriceOverride"></div>
                 <div class="form-group"><label>Cantidad Vendida:</label><input type="number" id="editSaleQuantity" min="1"></div>
             </div>
 
@@ -361,22 +361,22 @@
             
             <div class="info-data-container">
                 <div class="info-opaque-box">
-                    <span class="info-label">📧 CORREO:</span>
+                    <span class="info-label">CORREO:</span>
                     <strong id="infoEmail" class="accent-text truncate-text"></strong>
                     <button class="copy-btn" onclick="copyToClipboard('infoEmail')">📋</button>
                 </div>
                 <div class="info-opaque-box">
-                    <span class="info-label">🔑 CONTRASEÑA:</span>
+                    <span class="info-label">CONTRASEÑA:</span>
                     <strong id="infoPassword" class="truncate-text"></strong>
                     <button class="copy-btn" onclick="copyToClipboard('infoPassword')">📋</button>
                 </div>
                 <div class="info-opaque-box">
-                    <span class="info-label">👤 PERFIL:</span>
+                    <span class="info-label">PERFIL:</span>
                     <strong id="infoProfile" class="truncate-text"></strong>
                     <button class="copy-btn" onclick="copyToClipboard('infoProfile')">📋</button>
                 </div>
                 <div class="info-opaque-box">
-                    <span class="info-label">🔒 PIN:</span>
+                    <span class="info-label">PIN:</span>
                     <strong id="infoPin" class="truncate-text"></strong>
                     <button class="copy-btn" onclick="copyToClipboard('infoPin')">📋</button>
                 </div>
