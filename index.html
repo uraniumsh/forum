@@ -111,6 +111,38 @@
             </div>
         </section>
 
+            <div id="editSaleModal" class="modal">
+        <div class="modal-content neo-card scroll-modal">
+            <button class="close-btn" data-close="editSaleModal">&times;</button>
+            <h2 class="title-font">EDITAR VENTA</h2>
+            <hr class="neo-divider">
+            <input type="hidden" id="editSaleId">
+            <p class="text-muted mb-20">Producto: <strong id="editSaleProductName" class="accent-text"></strong></p>
+            
+            <div class="grid-2">
+                <div class="form-group"><label>Precio Unitario Cobrado:</label><input type="number" id="editSalePriceOverride"></div>
+                <div class="form-group"><label>Cantidad Vendida:</label><input type="number" id="editSaleQuantity" min="1"></div>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group"><label>Correo:</label><input type="text" id="editSaleEmail"></div>
+                <div class="form-group"><label>Contraseña:</label><input type="text" id="editSalePassword"></div>
+            </div>
+            <div class="grid-2">
+                <div class="form-group"><label>Perfil:</label><input type="text" id="editSaleProfile"></div>
+                <div class="form-group"><label>Pin:</label><input type="text" id="editSalePin"></div>
+            </div>
+            
+            <div class="calculator-box neo-card-inset">
+                <p>NUEVO TOTAL:</p>
+                <h2 id="editSaleTotalText" class="accent-text">$0 COP</h2>
+            </div>
+            
+            <button id="submitEditSaleBtn" class="neo-btn w-100 mt-20 warning">ACTUALIZAR VENTA</button>
+        </div>
+            </div>
+        
+
         <section id="view-sales" class="view-section">
             <div class="section-header">
                 <h2>REGISTRO DE VENTAS ACTIVAS</h2>
