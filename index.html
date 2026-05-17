@@ -7,8 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=uranium_v5">
-    <script type="module" src="script.js?v=uranium_v5" defer></script>
+    <link rel="stylesheet" href="style.css?v=uranium_v6">
+    <script type="module" src="script.js?v=uranium_v6" defer></script>
 </head>
 <body>
 
@@ -32,40 +32,47 @@
     <main class="container">
         
         <section id="view-dashboard" class="view-section active">
-            <div class="section-header">
-                <h2>MÉTRICAS GLOBALES</h2>
-                <p class="text-muted">Resumen del rendimiento de tu negocio en tiempo real.</p>
+            <div class="section-header flex-between">
+                <div>
+                    <h2>MÉTRICAS DEL MES <span id="currentMonthBadge" class="text-warning">#1</span></h2>
+                    <p class="text-muted">Resumen del rendimiento actual.</p>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button id="btnMonthsHistory" class="neo-btn-sm">📅 HISTORIAL MESES</button>
+                    <button id="btnUndoMonth" class="neo-btn-sm danger">⏪ DESHACER MES</button>
+                    <button id="btnReadyMonth" class="neo-btn-sm success" style="background: var(--success); color: #000;">✅ LISTO (CERRAR MES)</button>
+                </div>
             </div>
             
             <div class="metrics-grid">
                 <div class="neo-card metric-card">
-                    <h3>INGRESOS TOTALES</h3>
+                    <h3>INGRESOS BRUTOS TOTALES</h3>
                     <div class="metric-value accent-text" id="totalRevenue">$0</div>
                 </div>
                 <div class="neo-card metric-card">
-                    <h3>GANANCIA NETA GLOBAL</h3>
-                    <div class="metric-value text-success" id="totalProfit">$0</div>
+                    <h3>GANANCIA BRUTA (Sin descontar base)</h3>
+                    <div class="metric-value" id="totalProfit">$0</div>
                 </div>
                 <div class="neo-card metric-card">
-                    <h3>VENTAS / STOCK TOTAL</h3>
-                    <div class="metric-value"><span id="totalSalesCount">0</span> <span style="font-size: 1rem; color: gray;">/ <span id="totalStockCount">0</span></span></div>
+                    <h3>VENTAS REALIZADAS</h3>
+                    <div class="metric-value"><span id="totalSalesCount">0</span></div>
                 </div>
                 
                 <div class="neo-card metric-card full-width-card">
                     <h3 class="accent-text" style="border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 20px;">
-                        🤝 GESTIÓN DE CAPITAL Y SOCIOS (50/50)
+                        🤝 GANANCIAS NETAS Y SOCIOS (50/50)
                     </h3>
                     <div class="partners-grid">
                         <div class="form-group" style="margin: 0;">
-                            <label>Base Invertida (Plataforma):</label>
-                            <input type="number" id="baseCapital" placeholder="Ej. 100000" style="font-size: 1.5rem; color: var(--primary);">
+                            <label>Base Plataforma Distribuidor (Se descuenta):</label>
+                            <input type="number" id="baseCapital" placeholder="Ej. 100000" style="font-size: 1.5rem; color: var(--danger);">
                         </div>
                         <div class="partner-box">
-                            <span>SOCIO 1 (Ganancia 50%)</span>
+                            <span>SOCIO 1 (50% Neto)</span>
                             <strong id="partner1Cut" class="text-success">$0</strong>
                         </div>
                         <div class="partner-box">
-                            <span>SOCIO 2 (Ganancia 50%)</span>
+                            <span>SOCIO 2 (50% Neto)</span>
                             <strong id="partner2Cut" class="text-success">$0</strong>
                         </div>
                     </div>
@@ -106,8 +113,8 @@
 
         <section id="view-sales" class="view-section">
             <div class="section-header">
-                <h2>REGISTRO DE VENTAS</h2>
-                <p class="text-muted">Historial detallado y edición de ventas.</p>
+                <h2>REGISTRO DE VENTAS ACTIVAS</h2>
+                <p class="text-muted">Historial detallado del mes actual.</p>
             </div>
             <div class="neo-card table-container">
                 <table id="salesTable">
@@ -134,36 +141,20 @@
             <button class="close-btn" data-close="productModal">&times;</button>
             <h2 class="title-font">NUEVO PRODUCTO</h2>
             <hr class="neo-divider">
-            
             <div class="form-group">
                 <label>Categoría:</label>
                 <div class="flex-input">
-                    <select id="prodCategory">
-                        <option value="">-- Selecciona --</option>
-                    </select>
-                    <button id="btnOpenCategoryModal" class="neo-btn-sm" style="height: 52px; margin-left: 10px;" title="Nueva Categoría">+ NUEVA</button>
-                    <button id="btnManageCategoriesModal" class="neo-btn-sm danger" style="height: 52px; margin-left: 5px;" title="Eliminar Categorías">🗑️</button>
+                    <select id="prodCategory"><option value="">-- Selecciona --</option></select>
+                    <button id="btnOpenCategoryModal" class="neo-btn-sm" style="height: 52px; margin-left: 10px;">+ NUEVA</button>
+                    <button id="btnManageCategoriesModal" class="neo-btn-sm danger" style="height: 52px; margin-left: 5px;">🗑️</button>
                 </div>
             </div>
-            <div class="form-group">
-                <label>Nombre del Producto:</label>
-                <input type="text" id="prodName" placeholder="Ej. Pantalla Netflix">
-            </div>
+            <div class="form-group"><label>Nombre del Producto:</label><input type="text" id="prodName"></div>
             <div class="grid-2">
-                <div class="form-group">
-                    <label>Costo (Lo que te vale):</label>
-                    <input type="number" id="prodCost" placeholder="Ej. 10000">
-                </div>
-                <div class="form-group">
-                    <label>Precio Venta Regular (PVP):</label>
-                    <input type="number" id="prodPrice" placeholder="Ej. 15000">
-                </div>
+                <div class="form-group"><label>Costo (Lo que te vale):</label><input type="number" id="prodCost"></div>
+                <div class="form-group"><label>Precio Venta (PVP):</label><input type="number" id="prodPrice"></div>
             </div>
-            <div class="form-group">
-                <label>Stock Inicial (Unidades/Pantallas):</label>
-                <input type="number" id="prodStock" placeholder="Ej. 5">
-            </div>
-            
+            <div class="form-group"><label>Stock Inicial:</label><input type="number" id="prodStock" placeholder="Ej. 5"></div>
             <button id="submitProductBtn" class="neo-btn w-100 mt-20">GUARDAR PRODUCTO</button>
         </div>
     </div>
@@ -174,32 +165,13 @@
             <h2 class="title-font">EDITAR PRODUCTO</h2>
             <hr class="neo-divider">
             <input type="hidden" id="editProdId">
-            
-            <div class="form-group">
-                <label>Categoría:</label>
-                <select id="editProdCategory">
-                    <option value="">-- Selecciona --</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Nombre del Producto:</label>
-                <input type="text" id="editProdName" placeholder="Ej. Pantalla Netflix">
-            </div>
+            <div class="form-group"><label>Categoría:</label><select id="editProdCategory"></select></div>
+            <div class="form-group"><label>Nombre del Producto:</label><input type="text" id="editProdName"></div>
             <div class="grid-2">
-                <div class="form-group">
-                    <label>Costo:</label>
-                    <input type="number" id="editProdCost">
-                </div>
-                <div class="form-group">
-                    <label>Precio Venta:</label>
-                    <input type="number" id="editProdPrice">
-                </div>
+                <div class="form-group"><label>Costo:</label><input type="number" id="editProdCost"></div>
+                <div class="form-group"><label>Precio Venta:</label><input type="number" id="editProdPrice"></div>
             </div>
-            <div class="form-group">
-                <label>Stock Actual:</label>
-                <input type="number" id="editProdStock">
-            </div>
-            
+            <div class="form-group"><label>Stock Actual:</label><input type="number" id="editProdStock"></div>
             <button id="submitEditProductBtn" class="neo-btn w-100 mt-20 warning">ACTUALIZAR PRODUCTO</button>
         </div>
     </div>
@@ -209,11 +181,8 @@
             <button class="close-btn" data-close="categoryModal">&times;</button>
             <h2 class="title-font">NUEVA CATEGORÍA</h2>
             <hr class="neo-divider">
-            <div class="form-group">
-                <label>Nombre de la Categoría:</label>
-                <input type="text" id="newCategoryInput" placeholder="Ej. Pantallas, Combos, Música...">
-            </div>
-            <button id="submitCategoryBtn" class="neo-btn w-100 mt-20">AÑADIR CATEGORÍA</button>
+            <div class="form-group"><label>Nombre:</label><input type="text" id="newCategoryInput"></div>
+            <button id="submitCategoryBtn" class="neo-btn w-100 mt-20">AÑADIR</button>
             <div id="categoryError" class="error-text text-center mt-10"></div>
         </div>
     </div>
@@ -223,8 +192,7 @@
             <button class="close-btn" data-close="manageCategoriesModal">&times;</button>
             <h2 class="title-font">ELIMINAR CATEGORÍAS</h2>
             <hr class="neo-divider">
-            <p class="text-muted mb-20">Las categorías eliminadas desaparecerán de las opciones.</p>
-            <div id="categoriesListContainer" style="max-height: 300px; overflow-y: auto; padding-right: 5px;"></div>
+            <div id="categoriesListContainer" style="max-height: 300px; overflow-y: auto;"></div>
         </div>
     </div>
 
@@ -232,62 +200,40 @@
         <div class="modal-content neo-card combo-modal-size scroll-modal">
             <button class="close-btn" data-close="comboModal">&times;</button>
             <h2 class="title-font accent-text">⚡ CREADOR DE COMBOS</h2>
-            <p class="text-muted mb-20">Toca las apps del inventario para agregarlas al combo.</p>
-            
+            <p class="text-muted mb-20">Toca las apps para agregarlas.</p>
             <div class="combo-builder">
-                <div class="apps-source neo-card-inset">
-                    <h4>APPS DISPONIBLES</h4>
-                    <div class="apps-grid" id="appsSourceGrid"></div>
-                </div>
-
-                <div class="combo-slots-area">
-                    <h4>ARMA TU COMBO</h4>
-                    <div class="slots-container" id="comboSlotsContainer">
-                        <div class="combo-slot empty" data-slot="1">Toca una<br>App</div>
-                        <div class="combo-slot empty" data-slot="2">Toca una<br>App</div>
-                        <div class="combo-slot empty" data-slot="3">Toca una<br>App</div>
-                        <div class="combo-slot empty" data-slot="4">Toca una<br>App</div>
-                        <div class="combo-slot empty" data-slot="5">Toca una<br>App</div>
-                    </div>
-                </div>
+                <div class="apps-source neo-card-inset"><h4>APPS DISPONIBLES</h4><div class="apps-grid" id="appsSourceGrid"></div></div>
+                <div class="combo-slots-area"><h4>ARMA TU COMBO</h4><div class="slots-container" id="comboSlotsContainer">
+                    <div class="combo-slot empty" data-slot="1">Toca una<br>App</div><div class="combo-slot empty" data-slot="2">Toca una<br>App</div>
+                    <div class="combo-slot empty" data-slot="3">Toca una<br>App</div><div class="combo-slot empty" data-slot="4">Toca una<br>App</div>
+                    <div class="combo-slot empty" data-slot="5">Toca una<br>App</div>
+                </div></div>
             </div>
-
             <div class="financial-box mt-20">
-                <div class="form-group">
-                    <label>Nombre del Combo:</label>
-                    <input type="text" id="comboName" placeholder="Ej. Combo Familiar Supremo">
-                </div>
+                <div class="form-group"><label>Nombre del Combo:</label><input type="text" id="comboName"></div>
                 <div class="financial-grid">
-                    <div class="fin-item">
-                        <span>Costo Base:</span>
-                        <strong id="comboTotalCost">$0</strong>
+                    <div class="fin-item"><span>Costo Base:</span><strong id="comboTotalCost">$0</strong></div>
+                    <div class="fin-item"><span>Suma Precios Regular:</span><strong id="comboRegularPrice">$0</strong></div>
+                    <div class="fin-item highlight"><label>Precio del Combo (Oferta):</label>
+                        <div class="flex-input"><input type="number" id="comboFinalPrice"><button id="btnSmartPrice" class="neo-btn-sm warning" style="height:52px;margin-left:10px;">🪄 AUTO</button></div>
                     </div>
-                    <div class="fin-item">
-                        <span>Suma Precios Regular:</span>
-                        <strong id="comboRegularPrice">$0</strong>
-                    </div>
-                    
-                    <div class="fin-item highlight">
-                        <label>Precio del Combo (Oferta):</label>
-                        <div class="flex-input">
-                            <input type="number" id="comboFinalPrice" placeholder="Ej. 25000">
-                            <button id="btnSmartPrice" class="neo-btn-sm warning" style="height: 52px; margin-left: 10px;" title="Calcular mejor precio">🪄 AUTO</button>
-                        </div>
-                    </div>
-                    
-                    <div class="fin-item">
-                        <span>Descuento vs Regular:</span>
-                        <strong id="comboDiscount" class="text-warning">$0</strong>
-                    </div>
-                    <div class="fin-item">
-                        <span>Ganancia Neta:</span>
-                        <strong id="comboProfit" class="text-success">$0</strong>
-                    </div>
+                    <div class="fin-item"><span>Descuento vs Regular:</span><strong id="comboDiscount" class="text-warning">$0</strong></div>
+                    <div class="fin-item"><span>Ganancia Neta:</span><strong id="comboProfit" class="text-success">$0</strong></div>
                 </div>
             </div>
-            
-            <button id="submitComboBtn" class="neo-btn w-100 mt-20 warning">GUARDAR COMBO EN INVENTARIO</button>
+            <button id="submitComboBtn" class="neo-btn w-100 mt-20 warning">GUARDAR COMBO</button>
             <div id="comboError" class="error-text text-center mt-10"></div>
+        </div>
+    </div>
+
+
+    <div id="textEditorModal" class="modal" style="z-index: 1200;">
+        <div class="modal-content neo-card" style="border-color: var(--warning); box-shadow: 6px 6px 0px var(--warning);">
+            <button class="close-btn" data-close="textEditorModal">&times;</button>
+            <h2 class="title-font">EDITAR TEXTO LARGO</h2>
+            <hr class="neo-divider">
+            <textarea id="longTextInput" rows="5" style="width:100%; padding:15px; background:var(--bg-color); border:3px solid var(--border-color); color:var(--text-main); font-family:'Inter'; resize:vertical;"></textarea>
+            <button id="saveLongTextBtn" class="neo-btn w-100 mt-20 warning">APLICAR TEXTO</button>
         </div>
     </div>
 
@@ -299,30 +245,44 @@
             
             <div class="form-group">
                 <label>Seleccionar Producto/Combo:</label>
-                <select id="saleProductSelect">
-                    <option value="">-- Elige un producto del stock --</option>
-                </select>
+                <select id="saleProductSelect"><option value="">-- Elige un producto --</option></select>
             </div>
             
             <div class="grid-2">
-                <div class="form-group">
-                    <label>Precio de Venta:</label>
-                    <input type="number" id="salePriceOverride" placeholder="Modifica si diste descuento">
-                </div>
-                <div class="form-group">
-                    <label>Cantidad Vendida:</label>
-                    <input type="number" id="saleQuantity" value="1" min="1">
-                </div>
+                <div class="form-group"><label>Precio Venta (Personalizado):</label><input type="number" id="salePriceOverride"></div>
+                <div class="form-group"><label>Cantidad Vendida:</label><input type="number" id="saleQuantity" value="1" min="1"></div>
             </div>
 
             <div class="grid-2">
                 <div class="form-group">
-                    <label>Correo:</label>
-                    <input type="email" id="saleEmail" placeholder="correo@ejemplo.com">
+                    <label>Correo de la Cuenta:</label>
+                    <div class="flex-input">
+                        <input type="text" id="saleEmail" placeholder="correo@ej.com">
+                        <button class="neo-btn-sm" style="height:52px; margin-left:5px;" onclick="openTextEditor('saleEmail')">📝</button>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Contraseña:</label>
-                    <input type="text" id="salePassword" placeholder="Contraseña">
+                    <div class="flex-input">
+                        <input type="text" id="salePassword" placeholder="Pass">
+                        <button class="neo-btn-sm" style="height:52px; margin-left:5px;" onclick="openTextEditor('salePassword')">📝</button>
+                    </div>
+                </div>
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Perfil (Nombre):</label>
+                    <div class="flex-input">
+                        <input type="text" id="saleProfile" placeholder="Ej. Juan">
+                        <button class="neo-btn-sm" style="height:52px; margin-left:5px;" onclick="openTextEditor('saleProfile')">📝</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Pin (Opcional):</label>
+                    <div class="flex-input">
+                        <input type="text" id="salePin" placeholder="1234">
+                        <button class="neo-btn-sm" style="height:52px; margin-left:5px;" onclick="openTextEditor('salePin')">📝</button>
+                    </div>
                 </div>
             </div>
             
@@ -330,7 +290,6 @@
                 <p>TOTAL A COBRAR:</p>
                 <h2 id="saleTotalText" class="accent-text">$0 COP</h2>
             </div>
-            
             <button id="submitSaleBtn" class="neo-btn w-100 mt-20 primary">CONFIRMAR VENTA</button>
             <div id="saleError" class="error-text text-center mt-10"></div>
         </div>
@@ -345,58 +304,115 @@
             <p class="text-muted mb-20">Producto: <strong id="editSaleProductName" class="accent-text"></strong></p>
             
             <div class="grid-2">
-                <div class="form-group">
-                    <label>Precio Unitario Cobrado:</label>
-                    <input type="number" id="editSalePriceOverride">
-                </div>
-                <div class="form-group">
-                    <label>Cantidad Vendida:</label>
-                    <input type="number" id="editSaleQuantity" min="1">
-                </div>
+                <div class="form-group"><label>Precio Unitario Cobrado:</label><input type="number" id="editSalePriceOverride"></div>
+                <div class="form-group"><label>Cantidad Vendida:</label><input type="number" id="editSaleQuantity" min="1"></div>
             </div>
 
             <div class="grid-2">
-                <div class="form-group">
-                    <label>Correo:</label>
-                    <input type="email" id="editSaleEmail">
-                </div>
-                <div class="form-group">
-                    <label>Contraseña:</label>
-                    <input type="text" id="editSalePassword">
-                </div>
+                <div class="form-group"><label>Correo:</label><input type="text" id="editSaleEmail"></div>
+                <div class="form-group"><label>Contraseña:</label><input type="text" id="editSalePassword"></div>
             </div>
-            
-            <div class="calculator-box neo-card-inset">
-                <p>NUEVO TOTAL:</p>
-                <h2 id="editSaleTotalText" class="accent-text">$0 COP</h2>
+            <div class="grid-2">
+                <div class="form-group"><label>Perfil:</label><input type="text" id="editSaleProfile"></div>
+                <div class="form-group"><label>Pin:</label><input type="text" id="editSalePin"></div>
             </div>
             
             <button id="submitEditSaleBtn" class="neo-btn w-100 mt-20 warning">ACTUALIZAR VENTA</button>
-            <div id="editSaleError" class="error-text text-center mt-10"></div>
         </div>
     </div>
 
     <div id="saleInfoModal" class="modal">
-        <div class="modal-content neo-card" style="max-width: 400px; text-align: center;">
+        <div class="modal-content neo-card" style="max-width: 450px;">
             <button class="close-btn" data-close="saleInfoModal">&times;</button>
-            <h2 class="title-font">DATOS DE LA CUENTA</h2>
+            <h2 class="title-font text-center">DATOS DE ACCESO</h2>
             <hr class="neo-divider">
             
-            <div class="neo-card-inset mb-20" style="text-align: left;">
-                <p style="margin-bottom: 10px;"><strong>📧 Correo:</strong> <br> <span id="infoEmail" class="accent-text" style="font-size: 1.1rem;"></span></p>
-                <p><strong>🔑 Contraseña:</strong> <br> <span id="infoPassword" style="font-size: 1.1rem;"></span></p>
+            <div class="info-data-container">
+                <div class="info-opaque-box">
+                    <span class="info-label">📧 CORREO:</span>
+                    <strong id="infoEmail" class="accent-text truncate-text"></strong>
+                    <button class="copy-btn" onclick="copyToClipboard('infoEmail')">📋</button>
+                </div>
+                <div class="info-opaque-box">
+                    <span class="info-label">🔑 CONTRASEÑA:</span>
+                    <strong id="infoPassword" class="truncate-text"></strong>
+                    <button class="copy-btn" onclick="copyToClipboard('infoPassword')">📋</button>
+                </div>
+                <div class="info-opaque-box">
+                    <span class="info-label">👤 PERFIL:</span>
+                    <strong id="infoProfile" class="truncate-text"></strong>
+                    <button class="copy-btn" onclick="copyToClipboard('infoProfile')">📋</button>
+                </div>
+                <div class="info-opaque-box">
+                    <span class="info-label">🔒 PIN:</span>
+                    <strong id="infoPin" class="truncate-text"></strong>
+                    <button class="copy-btn" onclick="copyToClipboard('infoPin')">📋</button>
+                </div>
             </div>
             
-            <div style="background: rgba(212,175,55,0.1); border: 2px dashed var(--primary); padding: 15px;">
-                <h3 style="font-size: 0.9rem; color: var(--text-muted);">OCUPACIÓN DE LA CUENTA</h3>
-                <h1 class="text-success" style="font-size: 3rem; margin: 10px 0; line-height: 1;"><span id="infoTimesSold">0</span></h1>
-                <p style="font-size: 0.8rem; font-weight: bold;">VENTAS REGISTRADAS CON ESTE CORREO</p>
+            <div style="background: rgba(212,175,55,0.1); border: 2px dashed var(--primary); padding: 15px; text-align: center; margin-top:20px;">
+                <h3 style="font-size: 0.9rem; color: var(--text-muted);">OCUPACIÓN DE ESTA CUENTA</h3>
+                <h1 class="text-success" style="font-size: 3rem; margin: 5px 0; line-height: 1;"><span id="infoTimesSold">0</span></h1>
+                <p style="font-size: 0.8rem; font-weight: bold;">VECES VENDIDAS ESTE MES (MISMO CORREO)</p>
             </div>
-            
-            <button class="neo-btn w-100 mt-20" data-close="saleInfoModal">CERRAR INFO</button>
+        </div>
+    </div>
+
+
+    <div id="confirmModal1" class="modal" style="z-index: 2000;">
+        <div class="modal-content neo-card text-center">
+            <h2 class="title-font text-warning" style="font-size: 3rem; margin-bottom:10px;">⚠️</h2>
+            <h2 class="title-font">¿ESTÁS SEGURO?</h2>
+            <p class="mt-10 mb-20 text-muted">Estás a punto de cerrar el mes. Esto calculará las ganancias, enviará el reporte a Telegram y limpiará la tabla de ventas actual.</p>
+            <div class="grid-2">
+                <button class="neo-btn-outline" data-close="confirmModal1">CANCELAR</button>
+                <button class="neo-btn warning" id="btnConfirm1">SÍ, CONTINUAR</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmModal2" class="modal" style="z-index: 2005;">
+        <div class="modal-content neo-card text-center" style="border-color: var(--danger);">
+            <h2 class="title-font text-danger" style="font-size: 3rem; margin-bottom:10px;">🚨</h2>
+            <h2 class="title-font text-danger">¿ESTÁS SEGURO DE VERDAD?</h2>
+            <p class="mt-10 mb-20">Las ventas actuales se empaquetarán en el historial. ¡Asegúrate de que la base del distribuidor esté correcta!</p>
+            <button class="neo-btn danger w-100" id="btnConfirm2Real">ESTOY 100% SEGURO, CERRAR MES</button>
+            <button class="neo-btn-outline w-100 mt-10" data-close="confirmModal2" style="border:none;">Me arrepentí</button>
+        </div>
+    </div>
+
+    <div id="undoMonthModal" class="modal" style="z-index: 2000;">
+        <div class="modal-content neo-card text-center" style="border-color: var(--danger);">
+            <h2 class="title-font text-danger">⏪ DESHACER MES</h2>
+            <p class="mt-10 mb-20">Esto ELIMINARÁ el mes actual y traerá de vuelta TODAS las ventas del mes anterior a la tabla principal. ¿Proceder?</p>
+            <div class="grid-2">
+                <button class="neo-btn-outline" data-close="undoMonthModal">CANCELAR</button>
+                <button class="neo-btn danger" id="btnExecuteUndo">SÍ, DESHACER</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="monthsHistoryModal" class="modal">
+        <div class="modal-content neo-card scroll-modal">
+            <button class="close-btn" data-close="monthsHistoryModal">&times;</button>
+            <h2 class="title-font">HISTORIAL DE MESES</h2>
+            <hr class="neo-divider">
+            <button id="btnManualAddMonth" class="neo-btn-sm warning mb-20">+ AÑADIR MES MANUAL</button>
+            <div id="monthsListContainer">
+                <p class="text-center text-muted">Cargando historial...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="monthDetailModal" class="modal" style="z-index: 1500;">
+        <div class="modal-content neo-card scroll-modal">
+            <button class="close-btn" data-close="monthDetailModal">&times;</button>
+            <h2 class="title-font accent-text" id="detailMonthTitle">MES X</h2>
+            <hr class="neo-divider">
+            <pre id="detailMonthText" style="background:var(--bg-color); padding:15px; border:2px dashed var(--border-color); white-space: pre-wrap; font-size:0.8rem; overflow-y:auto; max-height:40vh; margin-bottom:20px;"></pre>
+            <button class="neo-btn-outline w-100" data-close="monthDetailModal">CERRAR</button>
         </div>
     </div>
 
 </body>
-                            </html>
-    
+</html>
